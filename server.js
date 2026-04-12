@@ -263,6 +263,24 @@ const loginPage = ({ language = 'en', scheme = 'default', error = '' } = {}) => 
 </html>`;
 };
 
+const PUBLIC_ASSET_MAP = {
+  '/manifest.json': 'manifest.json',
+  '/icon.svg': 'icon.svg',
+  '/icon-192.png': 'icon-192.png',
+  '/icon-512.png': 'icon-512.png',
+  '/sw.js': 'sw.js'
+};
+
+for (const [url, filename] of Object.entries(PUBLIC_ASSET_MAP)) {
+  app.get(url, (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, filename));
+  });
+}
+
+app.get('/config.json', (req, res) => {
+  res.json({ title: HANDL_TITLE });
+});
+
 app.use((req, res, next) => {
   if (!hashedPassword) return next();
   const cookies = parseCookies(req.headers.cookie);
@@ -295,10 +313,6 @@ app.get('/login', (req, res) => {
     return;
   }
   res.send(loginPage(getLoginPageContext()));
-});
-
-app.get('/config.json', (req, res) => {
-  res.json({ title: HANDL_TITLE });
 });
 
 app.use(express.static(PUBLIC_DIR, { maxAge: '1d' }));
