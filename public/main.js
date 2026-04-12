@@ -25,6 +25,17 @@ let sendTimeout;
 let pendingSend = false;
 let viewMode = true;
 let serverRevision = 0;
+const themeColorMeta = document.getElementById('theme-color-meta');
+const themeColorMap = {
+  default: '#0f172a',
+  dracula: '#0b0e17',
+  catppuccin: '#f5e0dc',
+  solarized: '#002b36',
+  nord: '#2e3440',
+  tokyo: '#05060f',
+  light: '#f5f5f5',
+  dawn: '#fff7ed'
+};
 
 const languages = [
   { code: 'en', label: 'English', native: 'English' },
@@ -320,6 +331,15 @@ function applyColorScheme(scheme) {
   if (schemeSelect) {
     schemeSelect.value = target;
   }
+  applyThemeColor(target);
+}
+
+function applyThemeColor(scheme) {
+  const color = themeColorMap[scheme] ?? themeColorMap.default;
+  if (themeColorMeta) {
+    themeColorMeta.setAttribute('content', color);
+  }
+  document.documentElement.style.setProperty('--page-bg-solid', color);
 }
 
 async function fetchConfig() {

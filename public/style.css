@@ -2,6 +2,8 @@
   font-family: 'Inter', system-ui, sans-serif;
   color: #e2e8f0;
   line-height: 1.6;
+  --status-bar: #030310;
+  --page-bg-solid: #020617;
   --page-bg: linear-gradient(180deg, #070b1e 0%, #0f172a 60%, #020617 100%);
   --panel-bg: rgba(15, 23, 42, 0.9);
   --panel-border: rgba(148, 163, 184, 0.4);
@@ -26,6 +28,11 @@
   --status-warn-border: rgba(249, 115, 22, 0.8);
   --status-idle-bg: var(--button-ghost-bg);
   --status-idle-border: var(--button-ghost-border);
+}
+
+html {
+  background-color: var(--page-bg-solid, #020617);
+  overscroll-behavior: contain;
 }
 
 body[data-scheme='dracula'] {
@@ -207,7 +214,11 @@ body {
   display: flex;
   justify-content: center;
   align-items: stretch;
-  padding: 1rem 0.5rem 1.2rem;
+  padding: calc(1rem + env(safe-area-inset-top));
+  padding-bottom: calc(1.2rem + env(safe-area-inset-bottom));
+  padding-left: calc(0.5rem + env(safe-area-inset-left));
+  padding-right: calc(0.5rem + env(safe-area-inset-right));
+  box-sizing: border-box;
 }
 
 .app-shell {
@@ -216,6 +227,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
+  padding-top: env(safe-area-inset-top);
 }
 
 button {
