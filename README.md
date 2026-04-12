@@ -26,6 +26,7 @@ docker run -d \
 - `HANDL_COOKIE_MAXAGE` accepts numbers (seconds), `none`, `inf`/`infinite`, or duration strings like `30d`. Defaults to `30d`.
 - `HANDL_TITLE` lets you customize the displayed app name (defaults to `Handl`).
 - Persisted data lives under `/app/data` inside the container, so mount a volume for durability.
+- The container runs as UID/GID `1000:1000` (the `node` user in the base image); override it with `--user <>` (e.g., `--user node:node`) if your host volume needs different ownership.
 
 ### 2. Docker Compose
 
