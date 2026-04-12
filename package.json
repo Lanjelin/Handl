@@ -1,0 +1,15 @@
+{
+  "name": "handl-pwa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Phone-first collaborative shopping list PWA",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.20.2",
+    "ws": "^8.13.0"
+  }
+}
