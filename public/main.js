@@ -18,6 +18,7 @@ const languageSelect = document.getElementById('language-select');
 
 let items = [];
 let settings = { sortChecked: false, colorScheme: 'default', language: 'en' };
+const LOCAL_SETTINGS_KEY = 'handl-settings';
 let ws;
 let reconnectTimeout;
 let sendTimeout;
@@ -208,6 +209,13 @@ const translations = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  const localSettings = loadLocalSettings();
+  if (localSettings) {
+    settings = { ...settings, ...localSettings };
+  }
+  populateLanguageOptions();
+  applyColorScheme(settings.colorScheme);
+  applyTranslations();
   connectSocket();
   editor.addEventListener('input', handleEditorInput);
   settingsButton.addEventListener('click', () => settingsDialog.showModal());
@@ -227,6 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
       settings.colorScheme = schemeSelect.value;
       applyColorScheme(schemeSelect.value);
       scheduleSend();
+      persistLocalSettings();
     });
   }
   registerServiceWorker();
@@ -391,6 +400,7 @@ function handleSortToggle() {
   settings.sortChecked = settingsSort.checked;
   render();
   scheduleSend();
+  persistLocalSettings();
 }
 
 function removeCheckedItems() {
@@ -474,7 +484,41 @@ function handleMessage(raw) {
     items = message.payload.items ?? [];
     settings = message.payload.settings ?? settings;
     serverRevision = Number(message.payload.revision ?? serverRevision);
+    persistLocalSettings();
     render();
+  }
+}
+
+function loadLocalSettings() {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(LOCAL_SETTINGS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const result = {};
+    if (typeof parsed.colorScheme === 'string') result.colorScheme = parsed.colorScheme;
+    if (typeof parsed.language === 'string') result.language = parsed.language;
+    if (typeof parsed.sortChecked === 'boolean') result.sortChecked = parsed.sortChecked;
+    return Object.keys(result).length ? result : null;
+  } catch (error) {
+    console.warn('Failed to load local settings', error);
+    return null;
+  }
+}
+
+function persistLocalSettings() {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(
+      LOCAL_SETTINGS_KEY,
+      JSON.stringify({
+        colorScheme: settings.colorScheme,
+        language: settings.language,
+        sortChecked: Boolean(settings.sortChecked)
+      })
+    );
+  } catch (error) {
+    console.warn('Failed to persist local settings', error);
   }
 }
 
@@ -509,6 +553,7 @@ function setLanguage(code) {
   applyTranslations();
   if (normalized !== previous) {
     scheduleSend();
+    persistLocalSettings();
   }
 }
 
