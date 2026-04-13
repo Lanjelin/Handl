@@ -384,10 +384,7 @@ function mergeIncomingItems(incomingItems, baseRevision) {
     incomingOrder.add(incoming.id);
     const serverItem = serverMap.get(incoming.id);
     if (serverItem) {
-      const hasConflict =
-        serverItem.rev > baseRevision ||
-        serverItem.text !== incoming.text ||
-        serverItem.checked !== incoming.checked;
+      const hasConflict = serverItem.rev > baseRevision && serverItem.text !== incoming.text;
       if (hasConflict) {
         merged.push(serverItem);
         if (serverItem.text !== incoming.text || serverItem.checked !== incoming.checked) {
