@@ -620,6 +620,9 @@ function toggleMode() {
   }
   applyTranslations();
   render();
+  if (!viewMode) {
+    setTimeout(autoResizeEditor, 1);
+  }
 }
 
 function updateModeUI() {
