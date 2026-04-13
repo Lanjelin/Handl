@@ -37,21 +37,11 @@ let themeColorMap = {
   default: FALLBACK_THEME_META_COLOR
 };
 
-const languages = [
-  { code: 'en', label: 'English', native: 'English' },
-  { code: 'no', label: 'Norwegian', native: 'Norsk' },
-  { code: 'es', label: 'Spanish', native: 'Español' },
-  { code: 'sv', label: 'Swedish', native: 'Svenska' },
-  { code: 'da', label: 'Danish', native: 'Dansk' },
-  { code: 'fi', label: 'Finnish', native: 'Suomi' },
-  { code: 'de', label: 'German', native: 'Deutsch' },
-  { code: 'nl', label: 'Dutch', native: 'Nederlands' },
-  { code: 'fr', label: 'French', native: 'Français' },
-  { code: 'pt', label: 'Portuguese', native: 'Português' },
-  { code: 'it', label: 'Italian', native: 'Italiano' }
+const FALLBACK_LANGUAGES = [
+  { code: 'en', label: 'English', native: 'English' }
 ];
 
-const translations = {
+const FALLBACK_TRANSLATIONS = {
   en: {
     settingsTitle: 'Settings',
     sortChecked: 'Keep checked items at the bottom',
@@ -66,166 +56,17 @@ const translations = {
     statusConnected: 'Connected',
     statusDisconnected: 'Disconnected',
     statusConnecting: 'Connecting'
-  },
-  no: {
-    settingsTitle: 'Innstillinger',
-    sortChecked: 'Plasser avkryssede emner nederst',
-    colorScheme: 'Fargeskjema',
-    removeChecked: 'Fjern avkryssede',
-    languageLabel: 'Språk',
-    languagePlaceholder: 'Søk etter språk…',
-    modeView: 'Vis',
-    modeEdit: 'Rediger',
-    toggleToEdit: 'Bytt til redigeringsmodus',
-    toggleToView: 'Bytt til visningsmodus',
-    statusConnected: 'Tilkoblet',
-    statusDisconnected: 'Frakoblet',
-    statusConnecting: 'Kobler til'
-  },
-  es: {
-    settingsTitle: 'Configuración',
-    sortChecked: 'Mantener marcados al final',
-    colorScheme: 'Esquema de color',
-    removeChecked: 'Eliminar marcados',
-    languageLabel: 'Idioma',
-    languagePlaceholder: 'Buscar idiomas…',
-    modeView: 'Ver',
-    modeEdit: 'Editar',
-    toggleToEdit: 'Cambiar a modo edición',
-    toggleToView: 'Cambiar a modo vista',
-    statusConnected: 'Conectado',
-    statusDisconnected: 'Desconectado',
-    statusConnecting: 'Conectando'
-  },
-  sv: {
-    settingsTitle: 'Inställningar',
-    sortChecked: 'Håll markerade längst ner',
-    colorScheme: 'Färgschema',
-    removeChecked: 'Ta bort markerade',
-    languageLabel: 'Språk',
-    languagePlaceholder: 'Sök språk…',
-    modeView: 'Visa',
-    modeEdit: 'Redigera',
-    toggleToEdit: 'Byt till redigeringsläge',
-    toggleToView: 'Byt till visningsläge',
-    statusConnected: 'Ansluten',
-    statusDisconnected: 'Frånkopplad',
-    statusConnecting: 'Ansluter'
-  },
-  de: {
-    settingsTitle: 'Einstellungen',
-    sortChecked: 'Markierte unten halten',
-    colorScheme: 'Farbschema',
-    removeChecked: 'Markierte entfernen',
-    languageLabel: 'Sprache',
-    languagePlaceholder: 'Sprache suchen…',
-    modeView: 'Ansicht',
-    modeEdit: 'Bearbeiten',
-    toggleToEdit: 'In den Bearbeitungsmodus wechseln',
-    toggleToView: 'In den Ansichtsmodus wechseln',
-    statusConnected: 'Verbunden',
-    statusDisconnected: 'Getrennt',
-    statusConnecting: 'Verbindung wird hergestellt'
-  },
-  nl: {
-    settingsTitle: 'Instellingen',
-    sortChecked: 'Houd aangevinkte items onderaan',
-    colorScheme: 'Kleurenschema',
-    removeChecked: 'Verwijder aangevinkten',
-    languageLabel: 'Taal',
-    languagePlaceholder: 'Zoek talen…',
-    modeView: 'Bekijken',
-    modeEdit: 'Bewerken',
-    toggleToEdit: 'Stap over naar bewerkmodus',
-    toggleToView: 'Stap over naar weergavemodus',
-    statusConnected: 'Verbonden',
-    statusDisconnected: 'Verbinding verbroken',
-    statusConnecting: 'Verbinden…'
-  },
-  fr: {
-    settingsTitle: 'Paramètres',
-    sortChecked: 'Garder les éléments cochés en bas',
-    colorScheme: 'Schéma de couleurs',
-    removeChecked: 'Supprimer les cochés',
-    languageLabel: 'Langue',
-    languagePlaceholder: 'Rechercher une langue…',
-    modeView: 'Voir',
-    modeEdit: 'Modifier',
-    toggleToEdit: 'Passer en mode édition',
-    toggleToView: 'Passer en mode affichage',
-    statusConnected: 'Connecté',
-    statusDisconnected: 'Déconnecté',
-    statusConnecting: 'Connexion…'
-  },
-  pt: {
-    settingsTitle: 'Configurações',
-    sortChecked: 'Manter itens marcados no fim',
-    colorScheme: 'Esquema de cores',
-    removeChecked: 'Remover marcados',
-    languageLabel: 'Idioma',
-    languagePlaceholder: 'Buscar idiomas…',
-    modeView: 'Visualizar',
-    modeEdit: 'Editar',
-    toggleToEdit: 'Alternar para modo de edição',
-    toggleToView: 'Alternar para modo de visualização',
-    statusConnected: 'Conectado',
-    statusDisconnected: 'Desconectado',
-    statusConnecting: 'Conectando…'
-  },
-  it: {
-    settingsTitle: 'Impostazioni',
-    sortChecked: 'Mantieni gli elementi spuntati in fondo',
-    colorScheme: 'Schema colori',
-    removeChecked: 'Rimuovi selezionati',
-    languageLabel: 'Lingua',
-    languagePlaceholder: 'Cerca lingua…',
-    modeView: 'Visualizza',
-    modeEdit: 'Modifica',
-    toggleToEdit: 'Passa alla modalità modifica',
-    toggleToView: 'Passa alla modalità visualizzazione',
-    statusConnected: 'Connesso',
-    statusDisconnected: 'Disconnesso',
-    statusConnecting: 'Connessione…'
-  },
-  fi: {
-    settingsTitle: 'Asetukset',
-    sortChecked: 'Pidä valitut tuotteet alhaalla',
-    colorScheme: 'Värimaailma',
-    removeChecked: 'Poista valitut',
-    languageLabel: 'Kieli',
-    languagePlaceholder: 'Etsi kieliä…',
-    modeView: 'Näytä',
-    modeEdit: 'Muokkaa',
-    toggleToEdit: 'Vaihda muokkaustilaan',
-    toggleToView: 'Vaihda näkymätilaan',
-    statusConnected: 'Yhdistetty',
-    statusDisconnected: 'Yhteys katkaistu',
-    statusConnecting: 'Yhdistetään…'
-  },
-  da: {
-    settingsTitle: 'Indstillinger',
-    sortChecked: 'Hold afkrydsede varer nederst',
-    colorScheme: 'Farvetema',
-    removeChecked: 'Fjern afkrydsede',
-    languageLabel: 'Sprog',
-    languagePlaceholder: 'Søg sprog…',
-    modeView: 'Vis',
-    modeEdit: 'Rediger',
-    toggleToEdit: 'Skift til redigeringstilstand',
-    toggleToView: 'Skift til visningstilstand',
-    statusConnected: 'Tilsluttet',
-    statusDisconnected: 'Frakoblet',
-    statusConnecting: 'Opretter forbindelse…'
   }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+let languages = FALLBACK_LANGUAGES;
+let translations = FALLBACK_TRANSLATIONS;
+
+document.addEventListener('DOMContentLoaded', async () => {
   const localSettings = loadLocalSettings();
   if (localSettings) {
     settings = { ...settings, ...localSettings };
   }
-  populateLanguageOptions();
-  applyTranslations();
   editor.addEventListener('input', handleEditorInput);
   settingsButton.addEventListener('click', () => settingsDialog.showModal());
   closeSettingsButton.addEventListener('click', () => settingsDialog.close());
@@ -247,7 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   registerServiceWorker();
-  fetchThemeCatalog();
+  await fetchThemeCatalog();
+  await fetchTranslationCatalog();
   applyColorScheme(settings.colorScheme);
   updateModeUI();
   setStatus('idle');
@@ -464,6 +306,22 @@ async function fetchThemeCatalog() {
   }
 }
 
+async function fetchTranslationCatalog() {
+  try {
+    const res = await fetch('/translations.json');
+    if (!res.ok) throw new Error('translations unavailable');
+    const catalog = await res.json();
+    languages = Array.isArray(catalog.languages) && catalog.languages.length ? catalog.languages : FALLBACK_LANGUAGES;
+    translations = catalog.strings && Object.keys(catalog.strings).length ? catalog.strings : FALLBACK_TRANSLATIONS;
+  } catch (error) {
+    console.warn('Failed to load translations', error);
+    languages = FALLBACK_LANGUAGES;
+    translations = FALLBACK_TRANSLATIONS;
+  }
+  populateLanguageOptions();
+  applyTranslations();
+}
+
 function populateThemeOptions() {
   if (!schemeSelect) return;
   schemeSelect.innerHTML = '';
@@ -600,6 +458,10 @@ function populateLanguageOptions() {
     node.value = option.code;
     node.textContent = `${option.label} (${option.native})`;
     languageSelect.appendChild(node);
+  }
+  const availableCodes = new Set(languages.map((option) => option.code));
+  if (!availableCodes.has(settings.language)) {
+    settings.language = languages[0]?.code ?? 'en';
   }
   languageSelect.value = settings.language;
 }

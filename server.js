@@ -27,75 +27,6 @@ const HANDL_COOKIE_MAXAGE = (() => {
   return parsed;
 })();
 const HANDL_TITLE = process.env.HANDL_TITLE?.trim() || 'Handl';
-const LOGIN_STRINGS = {
-  en: {
-    heading: 'Unlock',
-    passwordLabel: 'Password',
-    submit: 'Enter',
-    invalid: 'Incorrect password.'
-  },
-  no: {
-    heading: 'Lås opp',
-    passwordLabel: 'Passord',
-    submit: 'Skriv inn',
-    invalid: 'Feil passord.'
-  },
-  es: {
-    heading: 'Desbloquear',
-    passwordLabel: 'Contraseña',
-    submit: 'Entrar',
-    invalid: 'Contraseña incorrecta.'
-  },
-  sv: {
-    heading: 'Koppla upp',
-    passwordLabel: 'Lösenord',
-    submit: 'Logga in',
-    invalid: 'Fel lösenord.'
-  },
-  da: {
-    heading: 'Lås op',
-    passwordLabel: 'Adgangskode',
-    submit: 'Indtast',
-    invalid: 'Forkert adgangskode.'
-  },
-  fi: {
-    heading: 'Avaa',
-    passwordLabel: 'Salasana',
-    submit: 'Syötä',
-    invalid: 'Väärä salasana.'
-  },
-  de: {
-    heading: 'Entsperren',
-    passwordLabel: 'Passwort',
-    submit: 'Einloggen',
-    invalid: 'Falsches Passwort.'
-  },
-  nl: {
-    heading: 'Ontgrendel',
-    passwordLabel: 'Wachtwoord',
-    submit: 'Inloggen',
-    invalid: 'Onjuist wachtwoord.'
-  },
-  fr: {
-    heading: 'Déverrouiller',
-    passwordLabel: 'Mot de passe',
-    submit: 'Entrer',
-    invalid: 'Mot de passe incorrect.'
-  },
-  pt: {
-    heading: 'Desbloquear',
-    passwordLabel: 'Senha',
-    submit: 'Entrar',
-    invalid: 'Senha incorreta.'
-  },
-  it: {
-    heading: 'Sblocca',
-    passwordLabel: 'Password',
-    submit: 'Entra',
-    invalid: 'Password errata.'
-  }
-};
-
 const STARTUP_ASCII = String.raw`
   _   _                 _ _
  | | | | __ _ _ __   __| | |
@@ -105,8 +36,9 @@ const STARTUP_ASCII = String.raw`
 `;
 
 const THEMES = JSON.parse(readFileSync(new URL('./themes.json', import.meta.url), 'utf8'));
+const TRANSLATIONS = JSON.parse(readFileSync(new URL('./translations.json', import.meta.url), 'utf8'));
 
-const getLoginLocale = () => LOGIN_STRINGS[state.settings.language] ?? LOGIN_STRINGS.en;
+const getLoginLocale = (language) => TRANSLATIONS.strings?.[language] ?? TRANSLATIONS.strings?.en;
 const getLoginTheme = (scheme) => THEMES[scheme] ?? THEMES.default;
 
 const defaultState = {
@@ -138,7 +70,7 @@ const authCookieAttributes = () => {
 };
 
 const loginPage = ({ language = 'en', scheme = 'default', error = '' } = {}) => {
-  const locale = LOGIN_STRINGS[language] || LOGIN_STRINGS.en;
+  const locale = getLoginLocale(language) ?? TRANSLATIONS.strings.en;
   const theme = getLoginTheme(scheme);
   const vars = theme.variables || {};
   const bodyBackground = vars['--page-bg'] ?? '#050816';
@@ -273,13 +205,13 @@ const loginPage = ({ language = 'en', scheme = 'default', error = '' } = {}) => 
   </head>
   <body>
       <form method="POST">
-      <h2>${locale.heading} ${HANDL_TITLE}</h2>
+      <h2>${locale.loginHeading} ${HANDL_TITLE}</h2>
       ${error ? `<p class="error">${error}</p>` : ''}
       <div class="field-group">
-        <span class="field-label">${locale.passwordLabel}</span>
+        <span class="field-label">${locale.loginPasswordLabel}</span>
         <input type="password" name="password" required autofocus />
       </div>
-      <button type="submit">${locale.submit}</button>
+      <button type="submit">${locale.loginSubmit}</button>
     </form>
   </body>
 </html>`;
@@ -307,6 +239,10 @@ app.get('/themes.json', (req, res) => {
   res.json(THEMES);
 });
 
+app.get('/translations.json', (req, res) => {
+  res.json(TRANSLATIONS);
+});
+
 app.use((req, res, next) => {
   if (!hashedPassword) return next();
   const cookies = parseCookies(req.headers.cookie);
@@ -323,13 +259,13 @@ app.post('/login', (req, res) => {
   }
   const password = (req.body.password ?? '').toString();
   const context = getLoginPageContext();
-  const locale = LOGIN_STRINGS[context.language] || LOGIN_STRINGS.en;
+  const locale = getLoginLocale(context.language) ?? TRANSLATIONS.strings.en;
   const candidateHash = createHash('sha256').update(password).digest('hex');
   if (timingSafeEqual(Buffer.from(candidateHash), Buffer.from(hashedPassword))) {
     res.setHeader('Set-Cookie', `${AUTH_COOKIE_NAME}=${hashedPassword}; ${authCookieAttributes()}`);
     res.redirect('/');
   } else {
-    res.status(401).send(loginPage({ ...context, error: locale.invalid }));
+    res.status(401).send(loginPage({ ...context, error: locale.loginInvalid }));
   }
 });
 
