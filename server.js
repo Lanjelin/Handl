@@ -4,6 +4,7 @@ import express from 'express';
 import {createServer} from 'http';
 import {WebSocketServer} from 'ws';
 import {mkdir, readFile, writeFile} from 'fs/promises';
+import {readFileSync} from 'fs';
 import {randomUUID, createHash, timingSafeEqual} from 'crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -95,33 +96,6 @@ const LOGIN_STRINGS = {
   }
 };
 
-const LOGIN_THEME = {
-  default: {
-    body: 'radial-gradient(circle at top, rgba(59, 130, 246, 0.25), transparent 45%), #050816',
-    panel: '#0f172a',
-    border: 'rgba(148, 163, 184, 0.3)',
-    button: '#2563eb',
-    buttonHover: '#1d4ed8'
-  },
-  dracula: {
-    body: 'radial-gradient(circle at top, rgba(255, 121, 198, 0.25), transparent 45%), #0b0e17',
-    panel: 'rgba(7, 8, 18, 0.95)',
-    border: 'rgba(255, 121, 198, 0.45)',
-    button: '#bd93f9',
-    buttonHover: '#a074e4'
-  },
-  catppuccin: {
-    body: 'radial-gradient(circle at top, rgba(245, 194, 231, 0.4), transparent 45%), #1b1727',
-    panel: 'rgba(27, 24, 39, 0.95)',
-    border: 'rgba(248, 250, 252, 0.3)',
-    button: '#f38ba8',
-    buttonHover: '#eb6f92'
-  }
-};
-
-const getLoginLocale = () => LOGIN_STRINGS[state.settings.language] ?? LOGIN_STRINGS.en;
-const getLoginTheme = () => LOGIN_THEME[state.settings.colorScheme] ?? LOGIN_THEME.default;
-
 const STARTUP_ASCII = String.raw`
   _   _                 _ _
  | | | | __ _ _ __   __| | |
@@ -129,6 +103,11 @@ const STARTUP_ASCII = String.raw`
  |  _  | (_| | | | | (_| | |
  |_| |_|\__,_|_| |_|\__,_|_|
 `;
+
+const THEMES = JSON.parse(readFileSync(new URL('./themes.json', import.meta.url), 'utf8'));
+
+const getLoginLocale = () => LOGIN_STRINGS[state.settings.language] ?? LOGIN_STRINGS.en;
+const getLoginTheme = (scheme) => THEMES[scheme] ?? THEMES.default;
 
 const defaultState = {
   items: [],
@@ -160,18 +139,53 @@ const authCookieAttributes = () => {
 
 const loginPage = ({ language = 'en', scheme = 'default', error = '' } = {}) => {
   const locale = LOGIN_STRINGS[language] || LOGIN_STRINGS.en;
-  const theme = LOGIN_THEME[scheme] || LOGIN_THEME.default;
+  const theme = getLoginTheme(scheme);
+  const vars = theme.variables || {};
+  const bodyBackground = vars['--page-bg'] ?? '#050816';
+  const pageBgSolid = vars['--page-bg-solid'] ?? '#020617';
+  const panelBackground = vars['--panel-bg'] ?? '#0f172a';
+  const panelBorder = vars['--panel-border'] ?? 'rgba(148, 163, 184, 0.5)';
+  const panelShadow = vars['--panel-shadow'] ?? '0 15px 35px rgba(2, 6, 23, 0.65)';
+  const textColor = vars['--text-primary'] ?? '#e2e8f0';
+  const headingColor = vars['--heading-color'] ?? '#fff';
+  const mutedColor = vars['--text-muted'] ?? 'rgba(148, 163, 184, 0.9)';
+  const inputBackground = vars['--checkbox-bg'] ?? '#020617';
+  const inputBorder = vars['--checkbox-border'] ?? 'rgba(148, 163, 184, 0.5)';
+  const buttonBackground = vars['--button-bg'] ?? '#2563eb';
+  const buttonHover = vars['--button-bg-hover'] ?? '#1d4ed8';
+  const placeholderColor = vars['--text-muted'] ?? 'rgba(148, 163, 184, 0.7)';
   return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="${theme.metaColor ?? '#0f172a'}" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="icon" sizes="192x192" href="/icon-192.png" type="image/png" />
+    <link rel="icon" sizes="512x512" href="/icon-512.png" type="image/png" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0"
+    />
     <title>Handl login</title>
     <style>
       :root {
         font-family: system-ui, sans-serif;
-        background: #050816;
-        color: #e2e8f0;
+        background: ${bodyBackground};
+        background-color: ${pageBgSolid};
+        color: ${textColor};
+        --page-bg: ${bodyBackground};
+        --page-bg-solid: ${pageBgSolid};
+      }
+      html {
+        height: 100%;
+        width: 100%;
+        background: ${bodyBackground};
+        background-color: ${pageBgSolid};
+        overscroll-behavior: contain;
       }
       body {
         margin: 0;
@@ -179,29 +193,34 @@ const loginPage = ({ language = 'en', scheme = 'default', error = '' } = {}) => 
         display: flex;
         align-items: center;
         justify-content: center;
-        background: ${theme.body};
+        overscroll-behavior: contain;
+        background: ${bodyBackground};
+        width: 100%;
+      }
+      * {
+        box-sizing: border-box;
       }
       form {
         display: flex;
         flex-direction: column;
         gap: 0.85rem;
-        background: ${theme.panel};
+        background: ${panelBackground};
         padding: 2rem;
         border-radius: 1.1rem;
-        border: 1px solid ${theme.border};
+        border: 1px solid ${panelBorder};
         width: min(360px, 95vw);
-        box-shadow: 0 15px 35px rgba(2, 6, 23, 0.65);
+        box-shadow: ${panelShadow};
       }
       h2 {
         margin: 0;
         font-size: 1.6rem;
-        color: #fff;
+        color: ${headingColor};
       }
       .field-label {
         font-size: 0.75rem;
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: rgba(148, 163, 184, 0.9);
+        color: ${mutedColor};
         margin-bottom: 0.25rem;
       }
       .field-group {
@@ -213,8 +232,8 @@ const loginPage = ({ language = 'en', scheme = 'default', error = '' } = {}) => 
       select {
         padding: 0.85rem 0.9rem;
         border-radius: 0.75rem;
-        border: 1px solid rgba(148, 163, 184, 0.5);
-        background: #020617;
+        border: 1px solid ${inputBorder};
+        background: ${inputBackground};
         color: #e2e8f0;
         font-size: 1rem;
       }
@@ -227,7 +246,7 @@ const loginPage = ({ language = 'en', scheme = 'default', error = '' } = {}) => 
         padding: 0.85rem;
         border: none;
         border-radius: 0.75rem;
-        background: ${theme.button};
+        background: ${buttonBackground};
         color: #fff;
         font-size: 1rem;
         font-weight: 600;
@@ -235,17 +254,20 @@ const loginPage = ({ language = 'en', scheme = 'default', error = '' } = {}) => 
         transition: background 0.2s ease, transform 0.2s ease;
       }
       button:hover {
-        background: ${theme.buttonHover};
+        background: ${buttonHover};
         transform: translateY(-1px);
       }
       .hint {
-        color: rgba(148, 163, 184, 0.9);
+        color: ${mutedColor};
         font-size: 0.85rem;
       }
       .error {
         color: #fecdd3;
         font-size: 0.9rem;
         margin: 0;
+      }
+      ::placeholder {
+        color: ${placeholderColor};
       }
     </style>
   </head>
@@ -279,6 +301,10 @@ for (const [url, filename] of Object.entries(PUBLIC_ASSET_MAP)) {
 
 app.get('/config.json', (req, res) => {
   res.json({ title: HANDL_TITLE });
+});
+
+app.get('/themes.json', (req, res) => {
+  res.json(THEMES);
 });
 
 app.use((req, res, next) => {

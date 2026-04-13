@@ -26,15 +26,15 @@ let pendingSend = false;
 let viewMode = true;
 let serverRevision = 0;
 const themeColorMeta = document.getElementById('theme-color-meta');
-const themeColorMap = {
-  default: '#0f172a',
-  dracula: '#0b0e17',
-  catppuccin: '#f5e0dc',
-  solarized: '#002b36',
-  nord: '#2e3440',
-  tokyo: '#05060f',
-  light: '#f5f5f5',
-  dawn: '#fff7ed'
+const FALLBACK_THEME_META_COLOR = '#0f172a';
+const FALLBACK_THEME = {
+  label: 'Default',
+  metaColor: FALLBACK_THEME_META_COLOR,
+  variables: {}
+};
+let themeCatalog = { default: FALLBACK_THEME };
+let themeColorMap = {
+  default: FALLBACK_THEME_META_COLOR
 };
 
 const languages = [
@@ -225,16 +225,13 @@ document.addEventListener('DOMContentLoaded', () => {
     settings = { ...settings, ...localSettings };
   }
   populateLanguageOptions();
-  applyColorScheme(settings.colorScheme);
   applyTranslations();
-  connectSocket();
   editor.addEventListener('input', handleEditorInput);
   settingsButton.addEventListener('click', () => settingsDialog.showModal());
   closeSettingsButton.addEventListener('click', () => settingsDialog.close());
   settingsSort.addEventListener('change', handleSortToggle);
   removeCheckedButton.addEventListener('click', removeCheckedItems);
   toggleModeButton.addEventListener('click', toggleMode);
-  populateLanguageOptions();
   languageSelect?.addEventListener('change', (event) => setLanguage(event.target.value));
   settingsDialog.addEventListener('click', (event) => {
     if (event.target === settingsDialog) {
@@ -250,8 +247,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   registerServiceWorker();
+  fetchThemeCatalog();
+  applyColorScheme(settings.colorScheme);
   updateModeUI();
   setStatus('idle');
+  connectSocket();
   fetchConfig();
 });
 
@@ -260,6 +260,9 @@ function handleEditorInput() {
   items = parsed;
   autoResizeEditor();
   scheduleSend();
+  if (pendingSend) {
+    pendingSend = false;
+  }
 }
 
 function parseEditor(value) {
@@ -331,15 +334,22 @@ function applyColorScheme(scheme) {
   if (schemeSelect) {
     schemeSelect.value = target;
   }
-  applyThemeColor(target);
-}
-
-function applyThemeColor(scheme) {
-  const color = themeColorMap[scheme] ?? themeColorMap.default;
+  const color = themeColorMap[target] ?? FALLBACK_THEME_META_COLOR;
   if (themeColorMeta) {
     themeColorMeta.setAttribute('content', color);
   }
   document.documentElement.style.setProperty('--page-bg-solid', color);
+  const theme = themeCatalog[target] ?? FALLBACK_THEME;
+  applyThemeVariables(theme);
+}
+
+function applyThemeVariables(theme = FALLBACK_THEME) {
+  const variables = theme.variables || {};
+  for (const [key, value] of Object.entries(variables)) {
+    if (typeof value === 'string') {
+      document.documentElement.style.setProperty(key, value);
+    }
+  }
 }
 
 async function fetchConfig() {
@@ -433,6 +443,37 @@ function removeCheckedItems() {
   if (settingsDialog.open) {
     settingsDialog.close();
   }
+}
+
+async function fetchThemeCatalog() {
+  try {
+    const res = await fetch('/themes.json');
+    if (!res.ok) throw new Error('themes unavailable');
+    const catalog = await res.json();
+    themeCatalog = { ...catalog };
+    if (!themeCatalog.default) {
+      themeCatalog.default = FALLBACK_THEME;
+    }
+    themeColorMap = Object.fromEntries(
+      Object.entries(themeCatalog).map(([key, value]) => [key, value?.metaColor || FALLBACK_THEME_META_COLOR])
+    );
+    populateThemeOptions();
+    applyColorScheme(settings.colorScheme);
+  } catch (error) {
+    console.warn('Failed to load themes', error);
+  }
+}
+
+function populateThemeOptions() {
+  if (!schemeSelect) return;
+  schemeSelect.innerHTML = '';
+  for (const [key, value] of Object.entries(themeCatalog)) {
+    const option = document.createElement('option');
+    option.value = key;
+    option.textContent = value?.label || key;
+    schemeSelect.appendChild(option);
+  }
+  schemeSelect.value = settings.colorScheme;
 }
 
 function setStatus(variant = 'idle') {
