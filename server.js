@@ -384,12 +384,27 @@ function mergeIncomingItems(incomingItems, baseRevision) {
     incomingOrder.add(incoming.id);
     const serverItem = serverMap.get(incoming.id);
     if (serverItem) {
-      merged.push({
-        ...serverItem,
-        text: incoming.text,
-        checked: incoming.checked,
-        rev: newRevision
-      });
+      const hasConflict =
+        serverItem.rev > baseRevision ||
+        serverItem.text !== incoming.text ||
+        serverItem.checked !== incoming.checked;
+      if (hasConflict) {
+        merged.push(serverItem);
+        if (serverItem.text !== incoming.text || serverItem.checked !== incoming.checked) {
+          merged.push({
+            ...incoming,
+            id: randomUUID(),
+            rev: newRevision
+          });
+        }
+      } else {
+        merged.push({
+          ...serverItem,
+          text: incoming.text,
+          checked: incoming.checked,
+          rev: newRevision
+        });
+      }
     } else {
       merged.push({
         ...incoming,

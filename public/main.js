@@ -135,9 +135,7 @@ function render() {
   applyTranslations();
   updateModeUI();
 
-  if (!viewMode) {
-    return;
-  }
+  const textValue = ordered.map((item) => item.text).join('\n');
 
   checklist.innerHTML = '';
   ordered.forEach((item) => {
@@ -164,9 +162,19 @@ function render() {
     checklist.appendChild(label);
   });
 
-  if (document.activeElement !== editor) {
-    const textValue = ordered.map((item) => item.text).join('\n');
+  const shouldUpdateEditor = !viewMode || document.activeElement !== editor;
+  if (shouldUpdateEditor && editor.value.trim() !== textValue) {
+    const previousStart = editor.selectionStart;
+    const previousEnd = editor.selectionEnd;
+    const previousScroll = editor.scrollTop;
+    const wasFocused = document.activeElement === editor;
     editor.value = textValue;
+    if (wasFocused) {
+      editor.selectionStart = Math.min(previousStart, editor.value.length);
+      editor.selectionEnd = Math.min(previousEnd, editor.value.length);
+      editor.scrollTop = previousScroll;
+    }
+    autoResizeEditor();
   }
 }
 
@@ -513,6 +521,9 @@ function applyTranslations() {
 
 function toggleMode() {
   viewMode = !viewMode;
+  if (viewMode) {
+    handleEditorInput();
+  }
   if (!viewMode) {
     editor.focus();
     editor.selectionStart = editor.selectionEnd = editor.value.length;
