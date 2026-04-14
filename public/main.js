@@ -103,6 +103,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     restoreList(code);
   };
   restoreCodeButton?.addEventListener('click', attemptRestore);
+  restoreCodeInput?.addEventListener('focus', () => {
+    requestAnimationFrame(() => {
+      ensureSettingsFieldVisible(restoreCodeInput);
+    });
+  });
   restoreCodeInput?.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -666,6 +671,18 @@ function applyTranslations() {
   }
   if (languageSelect) {
     languageSelect.value = translations[settings.language] ? settings.language : 'en';
+  }
+}
+
+function ensureSettingsFieldVisible(field) {
+  if (!settingsDialog || !field) return;
+  const dialogRect = settingsDialog.getBoundingClientRect();
+  const fieldRect = field.getBoundingClientRect();
+  const padding = 20;
+  if (fieldRect.top < dialogRect.top + padding) {
+    settingsDialog.scrollBy({ top: fieldRect.top - dialogRect.top - padding, behavior: 'smooth' });
+  } else if (fieldRect.bottom > dialogRect.bottom - padding) {
+    settingsDialog.scrollBy({ top: fieldRect.bottom - dialogRect.bottom + padding, behavior: 'smooth' });
   }
 }
 

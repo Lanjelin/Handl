@@ -257,6 +257,9 @@ button.danger {
   color: var(--text-primary);
   width: min(360px, 92vw);
   border: 1px solid var(--panel-border);
+  max-height: min(85vh, 520px);
+  overflow-y: auto;
+  scroll-behavior: smooth;
 }
 
 .settings-dialog::backdrop {
