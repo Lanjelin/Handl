@@ -1,13 +1,15 @@
-const CACHE_NAME = 'handl-shell-v1';
-const ASSETS = ['/', '/index.html', '/style.css', '/main.js', '/manifest.json', '/icon.svg'];
+const CACHE_NAME = 'handl-shell-v3';
+const ASSETS = ['/', '/index.html', '/style.css', '/main.js', '/manifest.json', '/icon.svg', '/automerge.js'];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
 });
 
 self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
@@ -21,7 +23,19 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
-  );
+  const url = new URL(event.request.url);
+  const isShellAsset =
+    url.pathname === '/' ||
+    url.pathname === '/index.html' ||
+    url.pathname === '/main.js' ||
+    url.pathname === '/style.css' ||
+    url.pathname === '/manifest.json' ||
+    url.pathname === '/automerge.js';
+  if (isShellAsset) {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
 });

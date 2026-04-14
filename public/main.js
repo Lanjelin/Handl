@@ -1,3 +1,9 @@
+const Automerge = globalThis.Automerge;
+
+if (!Automerge) {
+  throw new Error('Automerge bundle not loaded');
+}
+
 const editor = document.getElementById('text-editor');
 const checklist = document.getElementById('checklist');
 const toggleModeButton = document.getElementById('toggle-mode');
@@ -17,30 +23,19 @@ const languageSelect = document.getElementById('language-select');
 const shareCodeInput = document.getElementById('settings-share-code');
 const restoreCodeInput = document.getElementById('restore-code-input');
 const restoreCodeButton = document.getElementById('restore-code-button');
+const themeColorMeta = document.getElementById('theme-color-meta');
 
-let items = [];
 const DEFAULT_SETTINGS = { sortChecked: false, colorScheme: 'default', language: 'en' };
-let settings = { ...DEFAULT_SETTINGS };
 const LOCAL_SETTINGS_KEY = 'handl-settings';
 const LOCAL_TOKEN_KEY = 'handl-session-token';
-let ws;
-let reconnectTimeout;
-let sendTimeout;
-let pendingSend = false;
-let viewMode = true;
-let serverRevision = 0;
-let sessionToken = null;
-let shareCodeValue = '';
-const themeColorMeta = document.getElementById('theme-color-meta');
+const LOCAL_DOC_PREFIX = 'handl-doc';
+const LOCAL_SYNC_PREFIX = 'handl-sync';
+
 const FALLBACK_THEME_META_COLOR = '#0f172a';
 const FALLBACK_THEME = {
   label: 'Default',
   metaColor: FALLBACK_THEME_META_COLOR,
   variables: {}
-};
-let themeCatalog = { default: FALLBACK_THEME };
-let themeColorMap = {
-  default: FALLBACK_THEME_META_COLOR
 };
 
 const FALLBACK_LANGUAGES = [
@@ -65,10 +60,29 @@ const FALLBACK_TRANSLATIONS = {
     toggleToView: 'Switch to view mode',
     statusConnected: 'Connected',
     statusDisconnected: 'Disconnected',
-    statusConnecting: 'Connecting'
+    statusConnecting: 'Connecting',
+    loginHeading: 'Unlock',
+    loginPasswordLabel: 'Password',
+    loginSubmit: 'Enter',
+    loginInvalid: 'Incorrect password.'
   }
 };
 
+let doc = createInitialDoc();
+let items = [];
+let settings = { ...DEFAULT_SETTINGS };
+let ws;
+let reconnectTimeout;
+let syncTimeout;
+let persistTimeout;
+let pendingSync = false;
+let viewMode = true;
+let sessionToken = null;
+let activeListId = '';
+let shareCodeValue = '';
+let syncState = Automerge.initSyncState();
+let themeCatalog = { default: FALLBACK_THEME };
+let themeColorMap = { default: FALLBACK_THEME_META_COLOR };
 let languages = FALLBACK_LANGUAGES;
 let translations = FALLBACK_TRANSLATIONS;
 
@@ -77,6 +91,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (localSettings) {
     settings = { ...settings, ...localSettings };
   }
+
+  applyColorScheme(settings.colorScheme);
+  applyTranslations();
+  updateModeUI();
+  setStatus('idle');
+
   editor.addEventListener('input', handleEditorInput);
   settingsButton.addEventListener('click', () => settingsDialog.showModal());
   closeSettingsButton.addEventListener('click', () => settingsDialog.close());
@@ -89,19 +109,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       settingsDialog.close();
     }
   });
+
   if (schemeSelect) {
     schemeSelect.addEventListener('change', () => {
-      settings.colorScheme = schemeSelect.value;
-      applyColorScheme(schemeSelect.value);
-      scheduleSend();
-      persistLocalSettings();
+      mutateDoc((draft) => {
+        draft.settings.colorScheme = schemeSelect.value;
+      });
     });
   }
+
   const attemptRestore = () => {
     const code = (restoreCodeInput?.value ?? '').trim().toUpperCase();
     if (!code) return;
     restoreList(code);
   };
+
   restoreCodeButton?.addEventListener('click', attemptRestore);
   restoreCodeInput?.addEventListener('focus', () => {
     requestAnimationFrame(() => {
@@ -114,56 +136,168 @@ document.addEventListener('DOMContentLoaded', async () => {
       attemptRestore();
     }
   });
+
   registerServiceWorker();
   await fetchThemeCatalog();
   await fetchTranslationCatalog();
-  applyColorScheme(settings.colorScheme);
-  updateModeUI();
-  setStatus('idle');
   await initializeSession();
   connectSocket();
   fetchConfig();
 });
 
-function handleEditorInput() {
-  const parsed = parseEditor(editor.value);
-  items = parsed;
-  autoResizeEditor();
-  scheduleSend();
-  if (pendingSend) {
-    pendingSend = false;
+function createInitialDoc() {
+  let initial = Automerge.init();
+  initial = Automerge.change(initial, (draft) => {
+    draft.items = [];
+    draft.settings = { ...DEFAULT_SETTINGS };
+  });
+  return initial;
+}
+
+function docFromSnapshot(snapshot) {
+  let loaded = Automerge.init();
+  loaded = Automerge.change(loaded, (draft) => {
+    draft.items = normalizeItems(snapshot?.items);
+    draft.settings = normalizeSettings(snapshot?.settings);
+  });
+  return loaded;
+}
+
+function snapshotFromDoc(source = doc) {
+  const raw = Automerge.toJS(source) || {};
+  return {
+    items: normalizeItems(raw.items),
+    settings: normalizeSettings(raw.settings)
+  };
+}
+
+function normalizeItems(source) {
+  if (!Array.isArray(source)) return [];
+  return source
+    .map((entry) => {
+      const text = typeof entry?.text === 'string' ? entry.text.trim() : '';
+      if (!text) return null;
+      return {
+        id: typeof entry?.id === 'string' && entry.id ? entry.id : crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
+        text,
+        checked: Boolean(entry?.checked)
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeSettings(source) {
+  if (!source || typeof source !== 'object') {
+    return { ...DEFAULT_SETTINGS };
+  }
+  return {
+    sortChecked: typeof source.sortChecked === 'boolean' ? source.sortChecked : DEFAULT_SETTINGS.sortChecked,
+    colorScheme: typeof source.colorScheme === 'string' ? source.colorScheme : DEFAULT_SETTINGS.colorScheme,
+    language: typeof source.language === 'string' ? source.language : DEFAULT_SETTINGS.language
+  };
+}
+
+function setDoc(nextDoc, { sync = false, persist = true, renderNow = true } = {}) {
+  doc = nextDoc || createInitialDoc();
+  const snapshot = snapshotFromDoc(doc);
+  items = snapshot.items;
+  settings = snapshot.settings;
+  if (renderNow) {
+    render();
+  } else {
+    applyColorScheme(settings.colorScheme);
+    applyTranslations();
+    if (settingsSort) {
+      settingsSort.checked = Boolean(settings.sortChecked);
+    }
+    if (schemeSelect) {
+      schemeSelect.value = settings.colorScheme;
+    }
+    if (languageSelect) {
+      languageSelect.value = translations[settings.language] ? settings.language : 'en';
+    }
+  }
+  if (persist) {
+    schedulePersistDocument();
+  }
+  persistLocalSettings();
+  if (sync) {
+    scheduleSync();
   }
 }
 
-function parseEditor(value) {
-  const seen = new Map();
-  items.forEach((item) => {
-    seen.set(item.text, item);
-  });
+function mutateDoc(mutator, options = {}) {
+  const nextDoc = Automerge.change(doc, mutator);
+  setDoc(nextDoc, { sync: true, ...options });
+}
 
+function handleEditorInput() {
+  const nextLines = parseEditorLines(editor.value);
+  const currentVisible = applySort([...items]);
+  const nextItems = reconcileLines(currentVisible, nextLines);
+
+  mutateDoc((draft) => {
+    draft.items = nextItems.map((item) => ({
+      id: item.id,
+      text: item.text,
+      checked: Boolean(item.checked)
+    }));
+  });
+}
+
+function parseEditorLines(value) {
   return value
     .split(/\r?\n/)
     .map((line) => line.trim())
-    .filter(Boolean)
-    .map((text) => {
-      const existing = seen.get(text);
-      return {
-        id: existing?.id ?? crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
+    .filter(Boolean);
+}
+
+function reconcileLines(currentItems, nextLines) {
+  const used = new Set();
+  const nextItems = [];
+
+  for (let index = 0; index < nextLines.length; index += 1) {
+    const text = nextLines[index];
+    const existingAtIndex = currentItems[index];
+    if (existingAtIndex && !used.has(existingAtIndex.id)) {
+      used.add(existingAtIndex.id);
+      nextItems.push({
+        id: existingAtIndex.id,
         text,
-        checked: existing?.checked ?? false
-      };
+        checked: Boolean(existingAtIndex.checked)
+      });
+      continue;
+    }
+
+    const reusable = currentItems.find((item) => !used.has(item.id) && item.text === text);
+    if (reusable) {
+      used.add(reusable.id);
+      nextItems.push({
+        id: reusable.id,
+        text,
+        checked: Boolean(reusable.checked)
+      });
+      continue;
+    }
+
+    nextItems.push({
+      id: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
+      text,
+      checked: false
     });
+  }
+
+  return nextItems;
 }
 
 function render() {
-  const ordered = applySort([...items]);
+  const ordered = applySort(items.map((item) => ({ ...item })));
+  const textValue = ordered.map((item) => item.text).join('\n');
 
   settingsSort.checked = Boolean(settings.sortChecked);
   applyColorScheme(settings.colorScheme);
   applyTranslations();
   updateModeUI();
-
-  const textValue = ordered.map((item) => item.text).join('\n');
 
   checklist.innerHTML = '';
   ordered.forEach((item) => {
@@ -176,15 +310,13 @@ function render() {
     text.textContent = item.text;
 
     checkbox.addEventListener('change', () => {
-      item.checked = checkbox.checked;
-      updateFromCheckbox(item);
+      updateItemChecked(item.id, checkbox.checked);
     });
 
     label.addEventListener('click', (event) => {
       if (event.target === checkbox) return;
       checkbox.checked = !checkbox.checked;
-      item.checked = checkbox.checked;
-      updateFromCheckbox(item);
+      updateItemChecked(item.id, checkbox.checked);
     });
 
     checklist.appendChild(label);
@@ -204,6 +336,15 @@ function render() {
     }
     autoResizeEditor();
   }
+}
+
+function updateItemChecked(id, checked) {
+  mutateDoc((draft) => {
+    const item = draft.items.find((entry) => entry.id === id);
+    if (item) {
+      item.checked = checked;
+    }
+  });
 }
 
 function applyColorScheme(scheme) {
@@ -262,15 +403,6 @@ function keepEditorVisible() {
   }
 }
 
-function updateFromCheckbox(updatedItem) {
-  const idx = items.findIndex((item) => item.id === updatedItem.id);
-  if (idx !== -1) {
-    items[idx] = { ...items[idx], checked: updatedItem.checked };
-    render();
-    scheduleSend(true);
-  }
-}
-
 function applySort(source) {
   if (!settings.sortChecked) return source;
   return source.sort((a, b) => {
@@ -279,45 +411,23 @@ function applySort(source) {
   });
 }
 
-function scheduleSend(skipDelay = false) {
-  if (sendTimeout) clearTimeout(sendTimeout);
-  if (skipDelay) {
-    sendState();
-    return;
-  }
-  sendTimeout = setTimeout(() => {
-    sendState();
-  }, 400);
-}
-
-function sendState() {
-  pendingSend = false;
-  if (ws?.readyState === WebSocket.OPEN) {
-    ws.send(
-      JSON.stringify({
-        type: 'state_update',
-        payload: { items, settings, baseRevision: serverRevision }
-      })
-    );
-  } else {
-    pendingSend = true;
-  }
-}
-
 function handleSortToggle() {
-  settings.sortChecked = settingsSort.checked;
-  render();
-  scheduleSend();
-  persistLocalSettings();
+  mutateDoc((draft) => {
+    draft.settings.sortChecked = settingsSort.checked;
+  });
 }
 
 function removeCheckedItems() {
   const remaining = items.filter((item) => !item.checked);
   if (remaining.length === items.length) return;
   if (!confirm('Remove all checked items? This cannot be undone.')) return;
-  items = remaining;
-  render();
-  scheduleSend();
+  mutateDoc((draft) => {
+    draft.items = remaining.map((item) => ({
+      id: item.id,
+      text: item.text,
+      checked: Boolean(item.checked)
+    }));
+  });
   if (settingsDialog.open) {
     settingsDialog.close();
   }
@@ -393,15 +503,15 @@ function setStatus(variant = 'idle') {
 }
 
 function connectSocket() {
+  if (!sessionToken) return;
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-  const query = sessionToken ? `?token=${encodeURIComponent(sessionToken)}` : '';
+  const query = `?token=${encodeURIComponent(sessionToken)}`;
   ws = new WebSocket(`${scheme}://${location.host}${query}`);
+  ws.binaryType = 'arraybuffer';
 
   ws.addEventListener('open', () => {
     setStatus('online');
-    if (pendingSend) {
-      sendState();
-    }
+    drainSync();
   });
 
   ws.addEventListener('message', (event) => {
@@ -465,17 +575,36 @@ async function applySessionResponse(session) {
   } else {
     clearSessionToken();
   }
+
+  activeListId = session.listId || activeListId;
   shareCodeValue = session.shareCode ?? '';
   updateShareCodeDisplay();
 
-  const remoteState = session.state || {};
-  items = normalizeRemoteItems(remoteState.items);
-  settings = normalizeRemoteSettings(remoteState.settings);
-  serverRevision = Number(remoteState.revision ?? serverRevision);
-  applyColorScheme(settings.colorScheme);
-  applyTranslations();
-  render();
-  persistLocalSettings();
+  const cached = loadStoredDocument(activeListId);
+  if (cached) {
+    doc = cached.doc;
+    syncState = cached.syncState;
+  } else {
+    doc = loadDocFromSession(session);
+    syncState = Automerge.initSyncState();
+  }
+
+  setDoc(doc, { sync: false, persist: false });
+  schedulePersistDocument();
+}
+
+function loadDocFromSession(session) {
+  if (session?.doc) {
+    try {
+      return Automerge.load(base64ToBytes(session.doc));
+    } catch (error) {
+      console.warn('Failed to load session doc', error);
+    }
+  }
+  if (session?.state) {
+    return docFromSnapshot(session.state);
+  }
+  return createInitialDoc();
 }
 
 function updateShareCodeDisplay() {
@@ -513,6 +642,32 @@ function clearSessionToken() {
   }
 }
 
+function scheduleSync() {
+  pendingSync = true;
+  if (syncTimeout) clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(() => {
+    syncTimeout = null;
+    drainSync();
+  }, 125);
+}
+
+function drainSync() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    pendingSync = true;
+    return;
+  }
+  pendingSync = false;
+  let nextSyncState = syncState;
+  while (true) {
+    const [updatedState, message] = Automerge.generateSyncMessage(doc, nextSyncState);
+    nextSyncState = updatedState;
+    if (!message) break;
+    ws.send(message);
+  }
+  syncState = nextSyncState;
+  schedulePersistDocument();
+}
+
 function scheduleReconnect() {
   if (reconnectTimeout) return;
   reconnectTimeout = setTimeout(() => {
@@ -522,80 +677,65 @@ function scheduleReconnect() {
 }
 
 function handleMessage(raw) {
-  let message;
+  const message = toUint8Array(raw);
+  if (!message) return;
   try {
-    message = JSON.parse(raw);
-  } catch (err) {
-    console.warn('Invalid WS payload', err);
-    return;
-  }
-
-  if (message.type === 'state' && message.payload) {
-    applyStatePayload(message.payload);
+    const [nextDoc, nextSyncState] = Automerge.receiveSyncMessage(doc, syncState, message);
+    doc = nextDoc;
+    syncState = nextSyncState;
+    const snapshot = snapshotFromDoc(doc);
+    items = snapshot.items;
+    settings = snapshot.settings;
     render();
-  }
-}
-
-function applyStatePayload(payload) {
-  if (!payload) return;
-  items = normalizeRemoteItems(payload.items);
-  settings = normalizeRemoteSettings(payload.settings);
-  serverRevision = Number(payload.revision ?? serverRevision);
-  persistLocalSettings();
-}
-
-function normalizeRemoteItems(source) {
-  if (!Array.isArray(source)) return [];
-  return source.map((item) => ({
-    id: typeof item?.id === 'string' ? item.id : crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
-    text: typeof item?.text === 'string' ? item.text : '',
-    checked: Boolean(item?.checked),
-    rev: Number(item?.rev ?? 0)
-  }));
-}
-
-function normalizeRemoteSettings(source) {
-  if (!source || typeof source !== 'object') {
-    return { ...DEFAULT_SETTINGS };
-  }
-  return {
-    sortChecked: typeof source.sortChecked === 'boolean' ? source.sortChecked : DEFAULT_SETTINGS.sortChecked,
-    colorScheme: typeof source.colorScheme === 'string' ? source.colorScheme : DEFAULT_SETTINGS.colorScheme,
-    language: typeof source.language === 'string' ? source.language : DEFAULT_SETTINGS.language
-  };
-}
-
-function loadLocalSettings() {
-  if (typeof localStorage === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem(LOCAL_SETTINGS_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    const result = {};
-    if (typeof parsed.colorScheme === 'string') result.colorScheme = parsed.colorScheme;
-    if (typeof parsed.language === 'string') result.language = parsed.language;
-    if (typeof parsed.sortChecked === 'boolean') result.sortChecked = parsed.sortChecked;
-    return Object.keys(result).length ? result : null;
+    persistLocalSettings();
+    schedulePersistDocument();
+    drainSync();
   } catch (error) {
-    console.warn('Failed to load local settings', error);
+    console.warn('Invalid sync payload', error);
+  }
+}
+
+function loadStoredDocument(listId) {
+  if (typeof localStorage === 'undefined' || !listId) return null;
+  try {
+    const rawDoc = localStorage.getItem(docStorageKey(listId));
+    if (!rawDoc) return null;
+    const docBytes = base64ToBytes(rawDoc);
+    const loadedDoc = Automerge.load(docBytes);
+    const rawSync = localStorage.getItem(syncStorageKey(listId));
+    const loadedSync = rawSync ? Automerge.decodeSyncState(base64ToBytes(rawSync)) : Automerge.initSyncState();
+    return { doc: loadedDoc, syncState: loadedSync };
+  } catch (error) {
+    console.warn('Failed to load stored doc', error);
     return null;
   }
 }
 
-function persistLocalSettings() {
-  if (typeof localStorage === 'undefined') return;
+function schedulePersistDocument() {
+  if (!activeListId || typeof localStorage === 'undefined') return;
+  if (persistTimeout) clearTimeout(persistTimeout);
+  persistTimeout = setTimeout(() => {
+    persistTimeout = null;
+    persistDocument();
+  }, 125);
+}
+
+function persistDocument() {
+  if (!activeListId || typeof localStorage === 'undefined') return;
   try {
-    localStorage.setItem(
-      LOCAL_SETTINGS_KEY,
-      JSON.stringify({
-        colorScheme: settings.colorScheme,
-        language: settings.language,
-        sortChecked: Boolean(settings.sortChecked)
-      })
-    );
+    localStorage.setItem(docStorageKey(activeListId), bytesToBase64(Automerge.save(doc)));
+    localStorage.setItem(syncStorageKey(activeListId), bytesToBase64(Automerge.encodeSyncState(syncState)));
   } catch (error) {
-    console.warn('Failed to persist local settings', error);
+    console.warn('Failed to persist doc', error);
   }
+}
+
+function docStorageKey(listId) {
+  return `${LOCAL_DOC_PREFIX}:${listId}`;
+}
+
+function syncStorageKey(listId) {
+  return `${LOCAL_SYNC_PREFIX}:${listId}`;
 }
 
 async function registerServiceWorker() {
@@ -625,16 +765,9 @@ function populateLanguageOptions() {
 
 function setLanguage(code) {
   const normalized = translations[code] ? code : 'en';
-  const previous = settings.language;
-  settings.language = normalized;
-  if (languageSelect) {
-    languageSelect.value = normalized;
-  }
-  applyTranslations();
-  if (normalized !== previous) {
-    scheduleSend();
-    persistLocalSettings();
-  }
+  mutateDoc((draft) => {
+    draft.settings.language = normalized;
+  });
 }
 
 function getLocale() {
@@ -687,21 +820,19 @@ function ensureSettingsFieldVisible(field) {
 }
 
 function toggleMode() {
-  viewMode = !viewMode;
   if (viewMode) {
     handleEditorInput();
   }
+  viewMode = !viewMode;
   if (!viewMode) {
     editor.focus();
     editor.selectionStart = editor.selectionEnd = editor.value.length;
   }
   updateModeUI();
-  if (!viewMode) {
-    autoResizeEditor();
-  }
   applyTranslations();
   render();
   if (!viewMode) {
+    autoResizeEditor();
     setTimeout(autoResizeEditor, 1);
   }
 }
@@ -712,4 +843,66 @@ function updateModeUI() {
   if (modeIcon) {
     modeIcon.textContent = viewMode ? 'edit_note' : 'visibility';
   }
+}
+
+function loadLocalSettings() {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(LOCAL_SETTINGS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const result = {};
+    if (typeof parsed.colorScheme === 'string') result.colorScheme = parsed.colorScheme;
+    if (typeof parsed.language === 'string') result.language = parsed.language;
+    if (typeof parsed.sortChecked === 'boolean') result.sortChecked = parsed.sortChecked;
+    return Object.keys(result).length ? result : null;
+  } catch (error) {
+    console.warn('Failed to load local settings', error);
+    return null;
+  }
+}
+
+function persistLocalSettings() {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(
+      LOCAL_SETTINGS_KEY,
+      JSON.stringify({
+        colorScheme: settings.colorScheme,
+        language: settings.language,
+        sortChecked: Boolean(settings.sortChecked)
+      })
+    );
+  } catch (error) {
+    console.warn('Failed to persist local settings', error);
+  }
+}
+
+function toUint8Array(value) {
+  if (value instanceof Uint8Array) return value;
+  if (value instanceof ArrayBuffer) return new Uint8Array(value);
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) return new Uint8Array(value);
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  }
+  return null;
+}
+
+function base64ToBytes(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
+}
+
+function bytesToBase64(bytes) {
+  const source = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let index = 0; index < source.length; index += chunkSize) {
+    binary += String.fromCharCode(...source.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
 }

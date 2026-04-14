@@ -6,12 +6,14 @@ import {WebSocketServer, WebSocket} from 'ws';
 import {mkdirSync, readFileSync} from 'fs';
 import Database from 'better-sqlite3';
 import {randomBytes, randomUUID} from 'crypto';
+import * as Automerge from '@automerge/automerge';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'handl.db');
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const AUTOMERGE_BUNDLE = path.join(__dirname, 'node_modules/@automerge/automerge/dist/iife/iife.js');
 const PRUNE_AFTER_MS = 180 * 24 * 60 * 60 * 1000;
 const SHARE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SHARE_CODE_LENGTH = 8;
@@ -19,14 +21,13 @@ const SHARE_CODE_LENGTH = 8;
 const THEMES = JSON.parse(readFileSync(path.join(__dirname, 'themes.json'), 'utf8'));
 const TRANSLATIONS = JSON.parse(readFileSync(path.join(__dirname, 'translations.json'), 'utf8'));
 
-const defaultState = {
+const defaultSnapshot = {
   items: [],
   settings: {
     sortChecked: false,
     colorScheme: 'default',
     language: 'en'
   },
-  revision: 0
 };
 
 mkdirSync(DATA_DIR, { recursive: true });
@@ -37,6 +38,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS lists (
     id TEXT PRIMARY KEY,
     state TEXT NOT NULL,
+    doc BLOB,
     revision INTEGER NOT NULL,
     share_code TEXT NOT NULL UNIQUE,
     last_access INTEGER NOT NULL
@@ -55,6 +57,8 @@ app.use(express.urlencoded({ extended: false }));
 
 const stateCache = new Map();
 const listClients = new Map();
+
+ensureListSchema();
 
 app.get('/session', (req, res) => {
   const providedToken = getString(req.query.token);
@@ -80,7 +84,8 @@ app.post('/restore', (req, res) => {
 app.get('/themes.json', (req, res) => res.json(THEMES));
 app.get('/translations.json', (req, res) => res.json(TRANSLATIONS));
 app.get('/config.json', (req, res) => res.json({ title: 'Handl' }));
-app.use(express.static(PUBLIC_DIR, { maxAge: '1d' }));
+app.get('/automerge.js', (req, res) => res.type('application/javascript').sendFile(AUTOMERGE_BUNDLE));
+app.use(express.static(PUBLIC_DIR, { maxAge: 0 }));
 
 const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
@@ -103,15 +108,16 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 wss.on('connection', (ws, listId) => {
-  const state = loadListState(listId);
-  if (!state) {
+  const record = loadListRecord(listId);
+  if (!record) {
     ws.close();
     return;
   }
-  attachClient(listId, ws);
-  ws.send(JSON.stringify({ type: 'state', payload: cloneState(state) }));
-  ws.on('message', (raw) => handleMessage(raw, listId));
-  ws.on('close', () => detachClient(listId, ws));
+  const client = { ws, syncState: Automerge.initSyncState() };
+  attachClient(listId, client);
+  drainSyncMessages(listId);
+  ws.on('message', (raw) => handleMessage(raw, listId, client));
+  ws.on('close', () => detachClient(listId, client));
 });
 
 startPruneLoop();
@@ -123,7 +129,7 @@ function getSession(token) {
       .get(token);
     if (row) {
       touchList(row.id);
-      return { listId: row.id, shareCode: row.share_code, state: parseState(row), token };
+      return { listId: row.id, shareCode: row.share_code, record: loadListRecord(row.id), token };
     }
   }
   return createSession(token);
@@ -137,14 +143,14 @@ function restoreWithCode(code, token) {
   const normalizedToken = ensureToken(token);
   assignToken(normalizedToken, row.id);
   touchList(row.id);
-  return { listId: row.id, shareCode: row.share_code, state: parseState(row), token: normalizedToken };
+  return { listId: row.id, shareCode: row.share_code, record: loadListRecord(row.id), token: normalizedToken };
 }
 
 function createSession(existingToken) {
   const token = ensureToken(existingToken);
   const { listId, shareCode, state } = createList();
   assignToken(token, listId);
-  return { listId, shareCode, state, token };
+  return { listId, shareCode, record: loadListRecord(listId), token };
 }
 
 function ensureToken(value) {
@@ -163,16 +169,18 @@ function assignToken(token, listId) {
 function createList() {
   const id = randomUUID();
   const shareCode = generateShareCode();
-  const state = cloneState(defaultState);
+  const doc = createInitialDoc();
+  const state = snapshotFromDoc(doc);
   const now = Date.now();
-  db.prepare('INSERT INTO lists (id, state, revision, share_code, last_access) VALUES (?, ?, ?, ?, ?)').run(
+  db.prepare('INSERT INTO lists (id, state, doc, revision, share_code, last_access) VALUES (?, ?, ?, ?, ?, ?)').run(
     id,
     JSON.stringify(state),
-    state.revision,
+    Buffer.from(Automerge.save(doc)),
+    0,
     shareCode,
     now
   );
-  stateCache.set(id, state);
+  stateCache.set(id, { doc, state });
   return { listId: id, shareCode, state };
 }
 
@@ -184,61 +192,85 @@ function generateShareCode() {
   return code;
 }
 
-function parseState(row) {
-  try {
-    const parsed = JSON.parse(row.state);
-    return {
-      items: Array.isArray(parsed.items) ? normalizeItems(parsed.items) : [],
-      settings: { ...defaultState.settings, ...(parsed.settings || {}) },
-      revision: Number(row.revision ?? defaultState.revision)
-    };
-  } catch (err) {
-    return cloneState(defaultState);
-  }
-}
-
 function normalizeItems(items) {
   return (
     items
       .map((entry) => {
-        const text = typeof entry.text === 'string' ? entry.text.trim() : '';
+      const text = typeof entry.text === 'string' ? entry.text.trim() : '';
         if (!text) return null;
         return {
           id: typeof entry.id === 'string' && entry.id ? entry.id : randomUUID(),
           text,
-          checked: Boolean(entry.checked),
-          rev: typeof entry.rev === 'number' ? entry.rev : 0
+          checked: Boolean(entry.checked)
         };
       })
       .filter(Boolean)
   );
 }
 
-function cloneState(state) {
+function createInitialDoc() {
+  let doc = Automerge.init();
+  doc = Automerge.change(doc, (draft) => {
+    draft.items = [];
+    draft.settings = { ...defaultSnapshot.settings };
+  });
+  return doc;
+}
+
+function snapshotFromDoc(doc) {
+  const raw = Automerge.toJS(doc) || {};
   return {
-    items: state.items.map((item) => ({ ...item })),
-    settings: { ...state.settings },
-    revision: state.revision
+    items: Array.isArray(raw.items) ? normalizeItems(raw.items) : [],
+    settings: { ...defaultSnapshot.settings, ...(raw.settings || {}) }
   };
 }
 
-function loadListState(listId) {
+function docFromSnapshot(snapshot) {
+  return Automerge.change(Automerge.init(), (draft) => {
+    draft.items = Array.isArray(snapshot.items) ? normalizeItems(snapshot.items) : [];
+    draft.settings = { ...defaultSnapshot.settings, ...(snapshot.settings || {}) };
+  });
+}
+
+function loadListRecord(listId) {
   if (stateCache.has(listId)) {
     return stateCache.get(listId);
   }
   const row = db.prepare('SELECT * FROM lists WHERE id = ?').get(listId);
   if (!row) return null;
-  const state = parseState(row);
-  stateCache.set(listId, state);
-  return state;
+  let doc = null;
+  if (row.doc) {
+    try {
+      doc = Automerge.load(toUint8Array(row.doc));
+    } catch (error) {
+      doc = null;
+    }
+  }
+  if (!doc) {
+    try {
+      const snapshot = JSON.parse(row.state);
+      doc = docFromSnapshot(snapshot);
+    } catch (error) {
+      doc = createInitialDoc();
+    }
+  }
+  const state = snapshotFromDoc(doc);
+  const record = { doc, state };
+  stateCache.set(listId, record);
+  if (!row.doc) {
+    persistListRecord(listId, record);
+  }
+  return record;
 }
 
-function persistListState(listId, state) {
+function persistListRecord(listId, record) {
   const now = Date.now();
+  const state = snapshotFromDoc(record.doc);
   db
-    .prepare('UPDATE lists SET state = ?, revision = ?, last_access = ? WHERE id = ?')
-    .run(JSON.stringify(state), state.revision, now, listId);
-  stateCache.set(listId, state);
+    .prepare('UPDATE lists SET state = ?, doc = ?, revision = ?, last_access = ? WHERE id = ?')
+    .run(JSON.stringify(state), Buffer.from(Automerge.save(record.doc)), 0, now, listId);
+  record.state = state;
+  stateCache.set(listId, record);
 }
 
 function touchList(listId) {
@@ -254,110 +286,49 @@ function getTokenMapping(token) {
   return row;
 }
 
-function handleMessage(raw, listId) {
-  let message;
+function handleMessage(raw, listId, client) {
+  const record = loadListRecord(listId);
+  if (!record) return;
+  const message = toUint8Array(raw);
+  if (!message) return;
   try {
-    message = JSON.parse(raw);
-  } catch (_) {
-    return;
+    const [nextDoc, nextSyncState] = Automerge.receiveSyncMessage(record.doc, client.syncState, message);
+    record.doc = nextDoc;
+    client.syncState = nextSyncState;
+    persistListRecord(listId, record);
+    drainSyncMessages(listId);
+  } catch (error) {
+    console.warn('Failed to process sync message', error);
   }
-  if (message?.type !== 'state_update' || !message.payload) {
-    return;
-  }
-  const state = loadListState(listId);
-  if (!state) return;
-  const items = normalizeItems(message.payload.items ?? []);
-  const incomingSettings = message.payload.settings;
-  if (incomingSettings && typeof incomingSettings.sortChecked === 'boolean') {
-    state.settings.sortChecked = incomingSettings.sortChecked;
-  }
-  if (incomingSettings && typeof incomingSettings.colorScheme === 'string') {
-    state.settings.colorScheme = incomingSettings.colorScheme;
-  }
-  if (incomingSettings && typeof incomingSettings.language === 'string') {
-    state.settings.language = incomingSettings.language;
-  }
-  const baseRevision = Number(message.payload.baseRevision ?? state.revision);
-  mergeIncomingItems(state, items, baseRevision);
-  applySort(state);
-  persistListState(listId, state);
-  broadcastState(listId, state);
 }
 
-function mergeIncomingItems(state, incomingItems, baseRevision) {
-  const newRevision = state.revision + 1;
-  const serverMap = new Map(state.items.map((item) => [item.id, item]));
-  const incomingOrder = new Set();
-  const merged = [];
-  for (const incoming of incomingItems) {
-    incomingOrder.add(incoming.id);
-    const serverItem = serverMap.get(incoming.id);
-    if (serverItem) {
-      const serverChanged = serverItem.rev > baseRevision;
-      const textChanged = serverItem.text !== incoming.text;
-      const checkedChanged = serverItem.checked !== incoming.checked;
-      if (serverChanged && (textChanged || checkedChanged)) {
-        merged.push(serverItem);
-        merged.push({
-          ...incoming,
-          id: randomUUID(),
-          rev: newRevision
-        });
-      } else if (serverChanged) {
-        merged.push(serverItem);
-      } else {
-        merged.push({
-          ...serverItem,
-          text: incoming.text,
-          checked: incoming.checked,
-          rev: newRevision
-        });
-      }
-    } else {
-      merged.push({
-        ...incoming,
-        rev: newRevision
-      });
-    }
-  }
-  for (const serverItem of state.items) {
-    if (!incomingOrder.has(serverItem.id) && serverItem.rev > baseRevision) {
-      merged.push(serverItem);
-    }
-  }
-  state.items = merged;
-  state.revision = newRevision;
-}
-
-function applySort(state) {
-  if (!state.settings.sortChecked) return;
-  state.items.sort((a, b) => {
-    if (a.checked === b.checked) return 0;
-    return a.checked ? 1 : -1;
-  });
-}
-
-function broadcastState(listId, state) {
+function drainSyncMessages(listId) {
+  const record = loadListRecord(listId);
+  if (!record) return;
   const clients = listClients.get(listId);
-  if (!clients) return;
-  const payload = JSON.stringify({ type: 'state', payload: cloneState(state) });
+  if (!clients || clients.size === 0) return;
   for (const client of clients) {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(payload);
+    while (true) {
+      const [nextSyncState, message] = Automerge.generateSyncMessage(record.doc, client.syncState);
+      client.syncState = nextSyncState;
+      if (!message) break;
+      if (client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(message);
+      }
     }
   }
 }
 
-function attachClient(listId, ws) {
+function attachClient(listId, client) {
   const clients = listClients.get(listId) ?? new Set();
-  clients.add(ws);
+  clients.add(client);
   listClients.set(listId, clients);
 }
 
-function detachClient(listId, ws) {
+function detachClient(listId, client) {
   const clients = listClients.get(listId);
   if (!clients) return;
-  clients.delete(ws);
+  clients.delete(client);
   if (clients.size === 0) {
     listClients.delete(listId);
   }
@@ -366,7 +337,18 @@ function detachClient(listId, ws) {
 function startPruneLoop() {
   setInterval(() => {
     const cutoff = Date.now() - PRUNE_AFTER_MS;
+    const rows = db.prepare('SELECT id FROM lists WHERE last_access < ?').all(cutoff);
     db.prepare('DELETE FROM lists WHERE last_access < ?').run(cutoff);
+    for (const row of rows) {
+      stateCache.delete(row.id);
+      const clients = listClients.get(row.id);
+      if (clients) {
+        for (const client of clients) {
+          client.ws.close();
+        }
+        listClients.delete(row.id);
+      }
+    }
   }, 60 * 60 * 1000);
 }
 
@@ -380,13 +362,41 @@ function formatShareCode(code) {
 }
 
 function formatSessionResponse(session) {
-  const state = session.state || cloneState(defaultState);
+  const record = session.record || { doc: createInitialDoc(), state: snapshotFromDoc(createInitialDoc()) };
   return {
     token: session.token,
     listId: session.listId,
     shareCode: formatShareCode(session.shareCode),
-    state: cloneState(state)
+    state: snapshotFromDoc(record.doc),
+    doc: bytesToBase64(Automerge.save(record.doc))
   };
+}
+
+function ensureListSchema() {
+  const columns = db.prepare('PRAGMA table_info(lists)').all().map((row) => row.name);
+  if (!columns.includes('doc')) {
+    db.exec('ALTER TABLE lists ADD COLUMN doc BLOB');
+  }
+}
+
+function toUint8Array(value) {
+  if (value instanceof Uint8Array) return value;
+  if (Buffer.isBuffer(value)) return new Uint8Array(value);
+  if (value instanceof ArrayBuffer) return new Uint8Array(value);
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  }
+  return null;
+}
+
+function bytesToBase64(bytes) {
+  const uint8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let index = 0; index < uint8.length; index += chunkSize) {
+    binary += String.fromCharCode(...uint8.subarray(index, index + chunkSize));
+  }
+  return Buffer.from(binary, 'binary').toString('base64');
 }
 
 console.log('Starting Handl with SQLite persistence...');
