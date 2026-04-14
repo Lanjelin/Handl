@@ -79,6 +79,12 @@
             <input type="checkbox" id="sort-checked" />
             <span data-i18n="sortChecked">Keep checked items at the bottom</span>
           </label>
+          <div class="settings-actions">
+            <button type="button" id="remove-checked" class="danger" data-i18n="removeChecked">
+              Remove checked items
+            </button>
+          </div>
+          <div class="settings-divider" aria-hidden="true"></div>
           <label class="setting stacked">
             <span data-i18n="listIdLabel">List ID</span>
             <div class="share-actions">
@@ -92,11 +98,6 @@
               <button id="restore-code-button" class="ghost" type="button" data-i18n="joinButton">Join</button>
             </div>
           </label>
-        </div>
-        <div class="settings-actions">
-          <button type="button" id="remove-checked" class="danger" data-i18n="removeChecked">
-            Remove checked items
-          </button>
         </div>
       </form>
     </dialog>
