@@ -27,6 +27,7 @@
           <div class="title-block">
             <div class="title-line">
               <h2 id="app-title">Handl</h2>
+              <span id="share-code" class="share-code" aria-live="polite"></span>
             </div>
           </div>
           <div class="title-actions">
@@ -79,6 +80,20 @@
           <label class="setting keep-bottom">
             <input type="checkbox" id="sort-checked" />
             <span data-i18n="sortChecked">Keep checked items at the bottom</span>
+          </label>
+          <label class="setting">
+            <span data-i18n="shareCodeLabel">Share code</span>
+            <div class="share-actions">
+              <input id="settings-share-code" readonly />
+              <button id="copy-share-code" class="ghost" type="button" data-i18n="copyShareCode">Copy</button>
+            </div>
+          </label>
+          <label class="setting">
+            <span data-i18n="restoreCodeLabel">Restore code</span>
+            <div class="share-actions">
+              <input id="restore-code-input" placeholder="" />
+              <button id="restore-code-button" class="ghost" type="button" data-i18n="restoreListButton">Restore</button>
+            </div>
           </label>
         </div>
         <div class="settings-actions">

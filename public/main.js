@@ -15,16 +15,24 @@ const removeCheckedButton = document.getElementById('remove-checked');
 const closeSettingsButton = document.getElementById('close-settings');
 const modeLabel = document.getElementById('mode-label');
 const languageSelect = document.getElementById('language-select');
+const shareCodeDisplay = document.getElementById('share-code');
+const shareCodeInput = document.getElementById('settings-share-code');
+const copyShareCodeButton = document.getElementById('copy-share-code');
+const restoreCodeInput = document.getElementById('restore-code-input');
+const restoreCodeButton = document.getElementById('restore-code-button');
 
 let items = [];
 let settings = { sortChecked: false, colorScheme: 'default', language: 'en' };
 const LOCAL_SETTINGS_KEY = 'handl-settings';
+const LOCAL_TOKEN_KEY = 'handl-session-token';
 let ws;
 let reconnectTimeout;
 let sendTimeout;
 let pendingSend = false;
 let viewMode = true;
 let serverRevision = 0;
+let sessionToken = null;
+let shareCodeValue = '';
 const themeColorMeta = document.getElementById('theme-color-meta');
 const FALLBACK_THEME_META_COLOR = '#0f172a';
 const FALLBACK_THEME = {
@@ -87,12 +95,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       persistLocalSettings();
     });
   }
+  copyShareCodeButton?.addEventListener('click', copyShareCode);
+  const attemptRestore = () => {
+    const code = (restoreCodeInput?.value ?? '').trim().toUpperCase();
+    if (!code) return;
+    restoreList(code);
+  };
+  restoreCodeButton?.addEventListener('click', attemptRestore);
+  restoreCodeInput?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      attemptRestore();
+    }
+  });
   registerServiceWorker();
   await fetchThemeCatalog();
   await fetchTranslationCatalog();
   applyColorScheme(settings.colorScheme);
   updateModeUI();
   setStatus('idle');
+  await initializeSession();
   connectSocket();
   fetchConfig();
 });
@@ -366,7 +388,8 @@ function setStatus(variant = 'idle') {
 
 function connectSocket() {
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${scheme}://${location.host}`);
+  const query = sessionToken ? `?token=${encodeURIComponent(sessionToken)}` : '';
+  ws = new WebSocket(`${scheme}://${location.host}${query}`);
 
   ws.addEventListener('open', () => {
     setStatus('online');
@@ -388,6 +411,123 @@ function connectSocket() {
     setStatus('warn');
     ws.close();
   });
+}
+
+async function initializeSession() {
+  try {
+    const storedToken = loadSessionToken();
+    const url = storedToken ? `/session?token=${encodeURIComponent(storedToken)}` : '/session';
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error('session unavailable');
+    }
+    const session = await res.json();
+    await applySessionResponse(session);
+  } catch (error) {
+    console.warn('Failed to initialize session', error);
+    setStatus('warn');
+  }
+}
+
+async function restoreList(code) {
+  try {
+    const res = await fetch('/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, token: sessionToken })
+    });
+    if (!res.ok) throw new Error('restore failed');
+    const session = await res.json();
+    await applySessionResponse(session);
+    if (settingsDialog.open) {
+      settingsDialog.close();
+    }
+    if (restoreCodeInput) {
+      restoreCodeInput.value = '';
+    }
+  } catch (error) {
+    console.warn('Failed to restore list', error);
+    alert('Unable to restore the list. Check the code and try again.');
+  }
+}
+
+async function applySessionResponse(session) {
+  if (!session) return;
+  sessionToken = session.token || null;
+  if (sessionToken) {
+    persistSessionToken(sessionToken);
+  } else {
+    clearSessionToken();
+  }
+  shareCodeValue = session.shareCode ?? '';
+  updateShareCodeDisplay();
+
+  const remoteState = session.state || {};
+  const remoteItems = Array.isArray(remoteState.items) ? remoteState.items : [];
+  items = remoteItems.map((item) => ({ ...item }));
+  const remoteSettings = remoteState.settings || {};
+  settings = {
+    sortChecked: typeof remoteSettings.sortChecked === 'boolean' ? remoteSettings.sortChecked : settings.sortChecked,
+    colorScheme: remoteSettings.colorScheme || settings.colorScheme,
+    language: remoteSettings.language || settings.language
+  };
+  serverRevision = Number(remoteState.revision ?? serverRevision);
+  applyColorScheme(settings.colorScheme);
+  applyTranslations();
+  render();
+  persistLocalSettings();
+}
+
+function updateShareCodeDisplay() {
+  const code = shareCodeValue || '';
+  if (shareCodeDisplay) {
+    shareCodeDisplay.textContent = code;
+  }
+  if (shareCodeInput) {
+    shareCodeInput.value = code;
+  }
+}
+
+async function copyShareCode() {
+  if (!shareCodeValue) return;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(shareCodeValue);
+    } else if (shareCodeInput) {
+      shareCodeInput.select();
+      document.execCommand('copy');
+    }
+  } catch (error) {
+    console.warn('Failed to copy share code', error);
+  }
+}
+
+function loadSessionToken() {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    return localStorage.getItem(LOCAL_TOKEN_KEY);
+  } catch (error) {
+    console.warn('Failed to load session token', error);
+    return null;
+  }
+}
+
+function persistSessionToken(token) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(LOCAL_TOKEN_KEY, token);
+  } catch (error) {
+    console.warn('Failed to persist session token', error);
+  }
+}
+
+function clearSessionToken() {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.removeItem(LOCAL_TOKEN_KEY);
+  } catch (error) {
+    console.warn('Failed to clear session token', error);
+  }
 }
 
 function scheduleReconnect() {

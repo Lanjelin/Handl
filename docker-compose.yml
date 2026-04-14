@@ -1,14 +1,9 @@
 version: '3.9'
 services:
   handl:
-    build: .
-    image: handl-pwa
+    image: ghcr.io/lanjelin/handl:latest
     ports:
       - "3000:3000"
-    environment:
-      - HANDL_PASSWORD=changeme
-      - HANDL_COOKIE_MAXAGE=inf
-      - HANDL_TITLE=Handl
     volumes:
       - ./data:/app/data
     restart: unless-stopped
