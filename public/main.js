@@ -15,14 +15,14 @@ const removeCheckedButton = document.getElementById('remove-checked');
 const closeSettingsButton = document.getElementById('close-settings');
 const modeLabel = document.getElementById('mode-label');
 const languageSelect = document.getElementById('language-select');
-const shareCodeDisplay = document.getElementById('share-code');
 const shareCodeInput = document.getElementById('settings-share-code');
 const copyShareCodeButton = document.getElementById('copy-share-code');
 const restoreCodeInput = document.getElementById('restore-code-input');
 const restoreCodeButton = document.getElementById('restore-code-button');
 
 let items = [];
-let settings = { sortChecked: false, colorScheme: 'default', language: 'en' };
+const DEFAULT_SETTINGS = { sortChecked: false, colorScheme: 'default', language: 'en' };
+let settings = { ...DEFAULT_SETTINGS };
 const LOCAL_SETTINGS_KEY = 'handl-settings';
 const LOCAL_TOKEN_KEY = 'handl-session-token';
 let ws;
@@ -463,14 +463,8 @@ async function applySessionResponse(session) {
   updateShareCodeDisplay();
 
   const remoteState = session.state || {};
-  const remoteItems = Array.isArray(remoteState.items) ? remoteState.items : [];
-  items = remoteItems.map((item) => ({ ...item }));
-  const remoteSettings = remoteState.settings || {};
-  settings = {
-    sortChecked: typeof remoteSettings.sortChecked === 'boolean' ? remoteSettings.sortChecked : settings.sortChecked,
-    colorScheme: remoteSettings.colorScheme || settings.colorScheme,
-    language: remoteSettings.language || settings.language
-  };
+  items = normalizeRemoteItems(remoteState.items);
+  settings = normalizeRemoteSettings(remoteState.settings);
   serverRevision = Number(remoteState.revision ?? serverRevision);
   applyColorScheme(settings.colorScheme);
   applyTranslations();
@@ -480,9 +474,6 @@ async function applySessionResponse(session) {
 
 function updateShareCodeDisplay() {
   const code = shareCodeValue || '';
-  if (shareCodeDisplay) {
-    shareCodeDisplay.textContent = code;
-  }
   if (shareCodeInput) {
     shareCodeInput.value = code;
   }
@@ -548,12 +539,38 @@ function handleMessage(raw) {
   }
 
   if (message.type === 'state' && message.payload) {
-    items = message.payload.items ?? [];
-    settings = message.payload.settings ?? settings;
-    serverRevision = Number(message.payload.revision ?? serverRevision);
-    persistLocalSettings();
+    applyStatePayload(message.payload);
     render();
   }
+}
+
+function applyStatePayload(payload) {
+  if (!payload) return;
+  items = normalizeRemoteItems(payload.items);
+  settings = normalizeRemoteSettings(payload.settings);
+  serverRevision = Number(payload.revision ?? serverRevision);
+  persistLocalSettings();
+}
+
+function normalizeRemoteItems(source) {
+  if (!Array.isArray(source)) return [];
+  return source.map((item) => ({
+    id: typeof item?.id === 'string' ? item.id : crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
+    text: typeof item?.text === 'string' ? item.text : '',
+    checked: Boolean(item?.checked),
+    rev: Number(item?.rev ?? 0)
+  }));
+}
+
+function normalizeRemoteSettings(source) {
+  if (!source || typeof source !== 'object') {
+    return { ...DEFAULT_SETTINGS };
+  }
+  return {
+    sortChecked: typeof source.sortChecked === 'boolean' ? source.sortChecked : DEFAULT_SETTINGS.sortChecked,
+    colorScheme: typeof source.colorScheme === 'string' ? source.colorScheme : DEFAULT_SETTINGS.colorScheme,
+    language: typeof source.language === 'string' ? source.language : DEFAULT_SETTINGS.language
+  };
 }
 
 function loadLocalSettings() {
