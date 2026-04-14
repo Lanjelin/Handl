@@ -295,6 +295,12 @@ button.danger {
   font-weight: 600;
 }
 
+.setting.stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
 .setting.keep-bottom {
   margin-top: 0.4rem;
 }
@@ -306,6 +312,59 @@ button.danger {
   border: 1px solid var(--select-border, var(--checkbox-border));
   color: var(--text-primary);
   font-family: inherit;
+}
+
+.share-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: nowrap;
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.share-code-field,
+.share-actions input[id='restore-code-input'] {
+  flex: 1;
+  border-radius: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--checkbox-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.share-code-field {
+  flex: 1 1 0;
+  width: 100%;
+  text-align: center;
+  letter-spacing: 0.2em;
+}
+
+.share-code-field:focus,
+.share-actions input[id='restore-code-input']:focus {
+  outline: none;
+  border-color: var(--button-bg);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+.share-actions input#restore-code-input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.setting span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.share-actions button {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  flex: 1 1 0;
+  min-width: 62px;
 }
 
 .settings-actions {

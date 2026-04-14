@@ -42,7 +42,6 @@
             <button id="toggle-mode" class="ghost icon-button" type="button" aria-label="Switch editing mode">
               <span id="mode-icon" class="material-symbols-outlined">edit_note</span>
             </button>
-            <span id="mode-label" class="mode-label" aria-live="polite">View</span>
             <button id="open-settings" class="ghost icon-button" type="button" aria-label="Open settings">
               <span class="material-symbols-outlined">settings</span>
             </button>
@@ -80,18 +79,17 @@
             <input type="checkbox" id="sort-checked" />
             <span data-i18n="sortChecked">Keep checked items at the bottom</span>
           </label>
-          <label class="setting">
-            <span data-i18n="shareCodeLabel">Share code</span>
+          <label class="setting stacked">
+            <span data-i18n="listIdLabel">List ID</span>
             <div class="share-actions">
-              <input id="settings-share-code" readonly />
-              <button id="copy-share-code" class="ghost" type="button" data-i18n="copyShareCode">Copy</button>
+              <input id="settings-share-code" class="share-code-field" readonly />
             </div>
           </label>
-          <label class="setting">
-            <span data-i18n="restoreCodeLabel">Restore code</span>
+          <label class="setting stacked">
+            <span data-i18n="joinListLabel">Join list</span>
             <div class="share-actions">
-              <input id="restore-code-input" placeholder="" />
-              <button id="restore-code-button" class="ghost" type="button" data-i18n="restoreListButton">Restore</button>
+              <input id="restore-code-input" placeholder="List ID" />
+              <button id="restore-code-button" class="ghost" type="button" data-i18n="joinButton">Join</button>
             </div>
           </label>
         </div>

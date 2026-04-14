@@ -1,16 +1,60 @@
 {
   "languages": [
-    {"code": "en", "label": "English", "native": "English"},
-    {"code": "no", "label": "Norwegian", "native": "Norsk"},
-    {"code": "es", "label": "Spanish", "native": "Español"},
-    {"code": "sv", "label": "Swedish", "native": "Svenska"},
-    {"code": "da", "label": "Danish", "native": "Dansk"},
-    {"code": "fi", "label": "Finnish", "native": "Suomi"},
-    {"code": "de", "label": "German", "native": "Deutsch"},
-    {"code": "nl", "label": "Dutch", "native": "Nederlands"},
-    {"code": "fr", "label": "French", "native": "Français"},
-    {"code": "pt", "label": "Portuguese", "native": "Português"},
-    {"code": "it", "label": "Italian", "native": "Italiano"}
+    {
+      "code": "en",
+      "label": "English",
+      "native": "English"
+    },
+    {
+      "code": "no",
+      "label": "Norwegian",
+      "native": "Norsk"
+    },
+    {
+      "code": "es",
+      "label": "Spanish",
+      "native": "Español"
+    },
+    {
+      "code": "sv",
+      "label": "Swedish",
+      "native": "Svenska"
+    },
+    {
+      "code": "da",
+      "label": "Danish",
+      "native": "Dansk"
+    },
+    {
+      "code": "fi",
+      "label": "Finnish",
+      "native": "Suomi"
+    },
+    {
+      "code": "de",
+      "label": "German",
+      "native": "Deutsch"
+    },
+    {
+      "code": "nl",
+      "label": "Dutch",
+      "native": "Nederlands"
+    },
+    {
+      "code": "fr",
+      "label": "French",
+      "native": "Français"
+    },
+    {
+      "code": "pt",
+      "label": "Portuguese",
+      "native": "Português"
+    },
+    {
+      "code": "it",
+      "label": "Italian",
+      "native": "Italiano"
+    }
   ],
   "strings": {
     "en": {
@@ -20,6 +64,10 @@
       "removeChecked": "Remove checked items",
       "languageLabel": "Language",
       "languagePlaceholder": "Search languages…",
+      "listIdLabel": "List ID",
+      "joinListLabel": "Join list",
+      "joinButton": "Join",
+      "listIdPlaceholder": "List ID",
       "modeView": "View",
       "modeEdit": "Edit",
       "toggleToEdit": "Switch to edit mode",
@@ -34,11 +82,15 @@
     },
     "no": {
       "settingsTitle": "Innstillinger",
-      "sortChecked": "Plasser avkryssede emner nederst",
-      "colorScheme": "Fargeskjema",
+      "sortChecked": "Plasser avkryssede nederst",
+      "colorScheme": "Fargetema",
       "removeChecked": "Fjern avkryssede",
       "languageLabel": "Språk",
       "languagePlaceholder": "Søk etter språk…",
+      "listIdLabel": "Liste-ID",
+      "joinListLabel": "Bli med på liste",
+      "joinButton": "Bli med",
+      "listIdPlaceholder": "Liste-ID",
       "modeView": "Vis",
       "modeEdit": "Rediger",
       "toggleToEdit": "Bytt til redigeringsmodus",
@@ -58,6 +110,10 @@
       "removeChecked": "Eliminar marcados",
       "languageLabel": "Idioma",
       "languagePlaceholder": "Buscar idiomas…",
+      "listIdLabel": "ID de lista",
+      "joinListLabel": "Unirse a la lista",
+      "joinButton": "Unirse",
+      "listIdPlaceholder": "ID de lista",
       "modeView": "Ver",
       "modeEdit": "Editar",
       "toggleToEdit": "Cambiar a modo edición",
@@ -77,6 +133,10 @@
       "removeChecked": "Ta bort markerade",
       "languageLabel": "Språk",
       "languagePlaceholder": "Sök språk…",
+      "listIdLabel": "List-ID",
+      "joinListLabel": "Gå med i listan",
+      "joinButton": "Gå med",
+      "listIdPlaceholder": "List-ID",
       "modeView": "Visa",
       "modeEdit": "Redigera",
       "toggleToEdit": "Byt till redigeringsläge",
@@ -96,6 +156,10 @@
       "removeChecked": "Fjern afkrydsede",
       "languageLabel": "Sprog",
       "languagePlaceholder": "Søg sprog…",
+      "listIdLabel": "Liste-ID",
+      "joinListLabel": "Deltag i listen",
+      "joinButton": "Deltag",
+      "listIdPlaceholder": "Liste-ID",
       "modeView": "Vis",
       "modeEdit": "Rediger",
       "toggleToEdit": "Skift til redigeringstilstand",
@@ -115,6 +179,10 @@
       "removeChecked": "Poista valitut",
       "languageLabel": "Kieli",
       "languagePlaceholder": "Etsi kieliä…",
+      "listIdLabel": "Lista-ID",
+      "joinListLabel": "Liity listaan",
+      "joinButton": "Liity",
+      "listIdPlaceholder": "Lista-ID",
       "modeView": "Näytä",
       "modeEdit": "Muokkaa",
       "toggleToEdit": "Vaihda muokkaustilaan",
@@ -134,6 +202,10 @@
       "removeChecked": "Markierte entfernen",
       "languageLabel": "Sprache",
       "languagePlaceholder": "Sprache suchen…",
+      "listIdLabel": "Listen-ID",
+      "joinListLabel": "Liste beitreten",
+      "joinButton": "Beitreten",
+      "listIdPlaceholder": "Listen-ID",
       "modeView": "Ansicht",
       "modeEdit": "Bearbeiten",
       "toggleToEdit": "In den Bearbeitungsmodus wechseln",
@@ -153,6 +225,10 @@
       "removeChecked": "Verwijder aangevinkten",
       "languageLabel": "Taal",
       "languagePlaceholder": "Zoek talen…",
+      "listIdLabel": "Lijst-ID",
+      "joinListLabel": "Deelnemen aan lijst",
+      "joinButton": "Deelnemen",
+      "listIdPlaceholder": "Lijst-ID",
       "modeView": "Bekijken",
       "modeEdit": "Bewerken",
       "toggleToEdit": "Stap over naar bewerkmodus",
@@ -172,6 +248,10 @@
       "removeChecked": "Supprimer les cochés",
       "languageLabel": "Langue",
       "languagePlaceholder": "Rechercher une langue…",
+      "listIdLabel": "ID de liste",
+      "joinListLabel": "Rejoindre la liste",
+      "joinButton": "Rejoindre",
+      "listIdPlaceholder": "ID de liste",
       "modeView": "Voir",
       "modeEdit": "Modifier",
       "toggleToEdit": "Passer en mode édition",
@@ -191,6 +271,10 @@
       "removeChecked": "Remover marcados",
       "languageLabel": "Idioma",
       "languagePlaceholder": "Buscar idiomas…",
+      "listIdLabel": "ID da lista",
+      "joinListLabel": "Entrar na lista",
+      "joinButton": "Entrar",
+      "listIdPlaceholder": "ID da lista",
       "modeView": "Visualizar",
       "modeEdit": "Editar",
       "toggleToEdit": "Alternar para modo de edição",
@@ -210,6 +294,10 @@
       "removeChecked": "Rimuovi selezionati",
       "languageLabel": "Lingua",
       "languagePlaceholder": "Cerca lingua…",
+      "listIdLabel": "ID lista",
+      "joinListLabel": "Unisci alla lista",
+      "joinButton": "Unisci",
+      "listIdPlaceholder": "ID lista",
       "modeView": "Visualizza",
       "modeEdit": "Modifica",
       "toggleToEdit": "Passa alla modalità modifica",

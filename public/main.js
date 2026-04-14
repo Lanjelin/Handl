@@ -13,10 +13,8 @@ const settingsDialog = document.getElementById('settings-dialog');
 const settingsSort = document.getElementById('sort-checked');
 const removeCheckedButton = document.getElementById('remove-checked');
 const closeSettingsButton = document.getElementById('close-settings');
-const modeLabel = document.getElementById('mode-label');
 const languageSelect = document.getElementById('language-select');
 const shareCodeInput = document.getElementById('settings-share-code');
-const copyShareCodeButton = document.getElementById('copy-share-code');
 const restoreCodeInput = document.getElementById('restore-code-input');
 const restoreCodeButton = document.getElementById('restore-code-button');
 
@@ -57,6 +55,10 @@ const FALLBACK_TRANSLATIONS = {
     removeChecked: 'Remove checked items',
     languageLabel: 'Language',
     languagePlaceholder: 'Search languages…',
+    listIdLabel: 'List ID',
+    joinListLabel: 'Join list',
+    joinButton: 'Join',
+    listIdPlaceholder: 'List ID',
     modeView: 'View',
     modeEdit: 'Edit',
     toggleToEdit: 'Switch to edit mode',
@@ -95,7 +97,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       persistLocalSettings();
     });
   }
-  copyShareCodeButton?.addEventListener('click', copyShareCode);
   const attemptRestore = () => {
     const code = (restoreCodeInput?.value ?? '').trim().toUpperCase();
     if (!code) return;
@@ -479,20 +480,6 @@ function updateShareCodeDisplay() {
   }
 }
 
-async function copyShareCode() {
-  if (!shareCodeValue) return;
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(shareCodeValue);
-    } else if (shareCodeInput) {
-      shareCodeInput.select();
-      document.execCommand('copy');
-    }
-  } catch (error) {
-    console.warn('Failed to copy share code', error);
-  }
-}
-
 function loadSessionToken() {
   if (typeof localStorage === 'undefined') return null;
   try {
@@ -656,6 +643,9 @@ function applyTranslations() {
   const colorLabel = settingsDialog?.querySelector('[data-i18n="colorScheme"]');
   const removeButton = document.querySelector('[data-i18n="removeChecked"]');
   const languageLabel = settingsDialog?.querySelector('[data-i18n="languageLabel"]');
+  const listIdLabel = settingsDialog?.querySelector('[data-i18n="listIdLabel"]');
+  const joinLabel = settingsDialog?.querySelector('[data-i18n="joinListLabel"]');
+  const joinButton = document.querySelector('[data-i18n="joinButton"]');
 
   if (header) header.textContent = locale.settingsTitle;
   if (sortLabel) sortLabel.textContent = locale.sortChecked;
@@ -665,8 +655,11 @@ function applyTranslations() {
   if (languageSelect) {
     languageSelect.setAttribute('aria-label', locale.languageLabel);
   }
-  if (modeLabel) {
-    modeLabel.textContent = viewMode ? locale.modeView : locale.modeEdit;
+  if (listIdLabel) listIdLabel.textContent = locale.listIdLabel;
+  if (joinLabel) joinLabel.textContent = locale.joinListLabel;
+  if (joinButton) joinButton.textContent = locale.joinButton;
+  if (restoreCodeInput) {
+    restoreCodeInput.placeholder = locale.listIdPlaceholder;
   }
   if (toggleModeButton) {
     toggleModeButton.setAttribute('aria-label', viewMode ? locale.toggleToEdit : locale.toggleToView);
