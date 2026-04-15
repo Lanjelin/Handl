@@ -28,8 +28,7 @@ const DEFAULT_SETTINGS = { sortChecked: false, colorScheme: 'default', language:
 const LOCAL_SETTINGS_PREFIX = 'handl-settings';
 const LOCAL_UI_PREFIX = 'handl-ui-cache';
 const LOCAL_TOKEN_KEY = 'handl-session-token';
-const LOCAL_DOC_PREFIX = 'handl-doc';
-const LOCAL_SYNC_PREFIX = 'handl-sync';
+const LOCAL_DOC_PREFIX = 'handl-doc-v3';
 
 const FALLBACK_THEME_META_COLOR = '#0f172a';
 const FALLBACK_THEME = {
@@ -667,11 +666,10 @@ async function applySessionResponse(session) {
   const cached = loadStoredDocument(activeListId);
   if (cached) {
     doc = cached.doc;
-    syncState = cached.syncState;
   } else {
     doc = loadDocFromSession(session);
-    syncState = Automerge.initSyncState();
   }
+  syncState = Automerge.initSyncState();
 
   setDoc(doc, { sync: false, persist: false });
   updatePresence(0);
@@ -979,13 +977,10 @@ function clearHeartbeatWatchdog() {
 function loadStoredDocument(listId) {
   if (typeof localStorage === 'undefined' || !listId) return null;
   try {
-    const rawDoc = localStorage.getItem(docStorageKey(listId));
-    if (!rawDoc) return null;
-    const docBytes = base64ToBytes(rawDoc);
-    const loadedDoc = Automerge.load(docBytes);
-    const rawSync = localStorage.getItem(syncStorageKey(listId));
-    const loadedSync = rawSync ? Automerge.decodeSyncState(base64ToBytes(rawSync)) : Automerge.initSyncState();
-    return { doc: loadedDoc, syncState: loadedSync };
+    const rawSnapshot = localStorage.getItem(docStorageKey(listId));
+    if (!rawSnapshot) return null;
+    const snapshot = JSON.parse(rawSnapshot);
+    return { doc: docFromSnapshot(snapshot) };
   } catch (error) {
     console.warn('Failed to load stored doc', error);
     return null;
@@ -1004,8 +999,7 @@ function schedulePersistDocument() {
 function persistDocument() {
   if (!activeListId || typeof localStorage === 'undefined') return;
   try {
-    localStorage.setItem(docStorageKey(activeListId), bytesToBase64(Automerge.save(doc)));
-    localStorage.setItem(syncStorageKey(activeListId), bytesToBase64(Automerge.encodeSyncState(syncState)));
+    localStorage.setItem(docStorageKey(activeListId), JSON.stringify(snapshotFromDoc(doc)));
   } catch (error) {
     console.warn('Failed to persist doc', error);
   }
@@ -1013,10 +1007,6 @@ function persistDocument() {
 
 function docStorageKey(listId) {
   return `${LOCAL_DOC_PREFIX}:${listId}`;
-}
-
-function syncStorageKey(listId) {
-  return `${LOCAL_SYNC_PREFIX}:${listId}`;
 }
 
 async function registerServiceWorker() {
