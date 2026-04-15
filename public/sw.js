@@ -1,4 +1,4 @@
-const CACHE_NAME = 'handl-shell-v4';
+const CACHE_NAME = 'handl-shell-v5';
 const ASSETS = [
   '/',
   '/index.html',

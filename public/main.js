@@ -1,4 +1,4 @@
-import Automerge from '/automerge.js';
+import Automerge, {automergeReady} from '/automerge.js';
 
 const editor = document.getElementById('text-editor');
 const checklist = document.getElementById('checklist');
@@ -64,7 +64,7 @@ const FALLBACK_TRANSLATIONS = {
   }
 };
 
-let doc = createInitialDoc();
+let doc = null;
 let items = [];
 let settings = { ...DEFAULT_SETTINGS };
 let ws;
@@ -76,23 +76,15 @@ let viewMode = true;
 let sessionToken = null;
 let activeListId = '';
 let shareCodeValue = '';
-let syncState = Automerge.initSyncState();
+let syncState = null;
 let themeCatalog = { default: FALLBACK_THEME };
 let themeColorMap = { default: FALLBACK_THEME_META_COLOR };
 let languages = FALLBACK_LANGUAGES;
 let translations = FALLBACK_TRANSLATIONS;
+let appReady = false;
+let socketGeneration = 0;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const localSettings = loadLocalSettings();
-  if (localSettings) {
-    settings = { ...settings, ...localSettings };
-  }
-
-  applyColorScheme(settings.colorScheme);
-  applyTranslations();
-  updateModeUI();
-  setStatus('idle');
-
   editor.addEventListener('input', handleEditorInput);
   settingsButton.addEventListener('click', () => settingsDialog.showModal());
   closeSettingsButton.addEventListener('click', () => settingsDialog.close());
@@ -134,11 +126,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   registerServiceWorker();
+  bootstrapApp().catch((error) => {
+    console.warn('Application bootstrap failed', error);
+    setStatus('warn');
+  });
+});
+
+async function bootstrapApp() {
+  await automergeReady;
+
+  const localSettings = loadLocalSettings();
+  if (localSettings) {
+    settings = { ...settings, ...localSettings };
+  }
+
+  applyColorScheme(settings.colorScheme);
+  applyTranslations();
+  updateModeUI();
+  setStatus('idle');
+
   await fetchThemeCatalog();
   await fetchTranslationCatalog();
+
+  doc = createInitialDoc();
+  syncState = Automerge.initSyncState();
+  appReady = true;
+
   await initializeSession();
   fetchConfig();
-});
+}
 
 function createInitialDoc() {
   let initial = Automerge.init();
@@ -222,11 +238,13 @@ function setDoc(nextDoc, { sync = false, persist = true, renderNow = true } = {}
 }
 
 function mutateDoc(mutator, options = {}) {
+  if (!appReady || !doc) return;
   const nextDoc = Automerge.change(doc, mutator);
   setDoc(nextDoc, { sync: true, ...options });
 }
 
 function handleEditorInput() {
+  if (!appReady || !doc) return;
   const nextLines = parseEditorLines(editor.value);
   const currentVisible = applySort([...items]);
   const nextItems = reconcileLines(currentVisible, nextLines);
@@ -334,6 +352,7 @@ function render() {
 }
 
 function updateItemChecked(id, checked) {
+  if (!appReady || !doc) return;
   mutateDoc((draft) => {
     const item = draft.items.find((entry) => entry.id === id);
     if (item) {
@@ -407,12 +426,14 @@ function applySort(source) {
 }
 
 function handleSortToggle() {
+  if (!appReady || !doc) return;
   mutateDoc((draft) => {
     draft.settings.sortChecked = settingsSort.checked;
   });
 }
 
 function removeCheckedItems() {
+  if (!appReady || !doc) return;
   const remaining = items.filter((item) => !item.checked);
   if (remaining.length === items.length) return;
   if (!confirm('Remove all checked items? This cannot be undone.')) return;
@@ -502,6 +523,7 @@ function connectSocket() {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
     return;
   }
+  const generation = socketGeneration;
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
   const query = `?token=${encodeURIComponent(sessionToken)}`;
   ws = new WebSocket(`${scheme}://${location.host}${query}`);
@@ -517,11 +539,13 @@ function connectSocket() {
   });
 
   ws.addEventListener('close', () => {
+    if (generation !== socketGeneration) return;
     setStatus('warn');
     scheduleReconnect();
   });
 
   ws.addEventListener('error', () => {
+    if (generation !== socketGeneration) return;
     setStatus('warn');
     ws.close();
   });
@@ -569,6 +593,13 @@ async function restoreList(code) {
 
 async function applySessionResponse(session) {
   if (!session) return;
+  const nextListId = session.listId || activeListId;
+  const listChanged = Boolean(activeListId && nextListId && nextListId !== activeListId);
+
+  if (listChanged) {
+    resetSocketState();
+  }
+
   sessionToken = session.token || null;
   if (sessionToken) {
     persistSessionToken(sessionToken);
@@ -576,7 +607,7 @@ async function applySessionResponse(session) {
     clearSessionToken();
   }
 
-  activeListId = session.listId || activeListId;
+  activeListId = nextListId;
   shareCodeValue = session.shareCode ?? '';
   updateShareCodeDisplay();
 
@@ -677,6 +708,25 @@ function scheduleReconnect() {
   }, 1500);
 }
 
+function resetSocketState() {
+  socketGeneration += 1;
+  pendingSync = false;
+  syncState = Automerge.initSyncState();
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
+  }
+  if (ws) {
+    const current = ws;
+    ws = null;
+    try {
+      current.close();
+    } catch (error) {
+      console.warn('Failed to close websocket', error);
+    }
+  }
+}
+
 function handleMessage(raw) {
   const message = toUint8Array(raw);
   if (!message) return;
@@ -765,6 +815,7 @@ function populateLanguageOptions() {
 }
 
 function setLanguage(code) {
+  if (!appReady || !doc) return;
   const normalized = translations[code] ? code : 'en';
   mutateDoc((draft) => {
     draft.settings.language = normalized;
@@ -821,6 +872,7 @@ function ensureSettingsFieldVisible(field) {
 }
 
 function toggleMode() {
+  if (!appReady || !doc) return;
   if (viewMode) {
     handleEditorInput();
   }
