@@ -51,7 +51,11 @@ app.use(express.urlencoded({ extended: false }));
 
 const stateCache = new Map();
 const listClients = new Map();
+const persistTimers = new Map();
+const forcePersistTimers = new Map();
 const compactTimers = new Map();
+const PERSIST_DEBOUNCE_MS = 750;
+const PERSIST_MAX_DELAY_MS = 30 * 1000;
 const COMPACT_IDLE_DELAY_MS = 2 * 60 * 1000;
 
 ensureListSchema();
@@ -175,7 +179,7 @@ function createList() {
     shareCode,
     now
   );
-  stateCache.set(id, { doc, state });
+  stateCache.set(id, { doc, state, dirty: false });
   return { listId: id, shareCode, state };
 }
 
@@ -247,7 +251,7 @@ function loadListRecord(listId) {
     }
   }
   const state = snapshotFromDoc(doc);
-  const record = { doc, state };
+  const record = { doc, state, dirty: false };
   stateCache.set(listId, record);
   if (!row.doc) {
     persistListRecord(listId, record);
@@ -262,6 +266,7 @@ function persistListRecord(listId, record) {
     .prepare('UPDATE lists SET state = ?, doc = ?, last_access = ? WHERE id = ?')
     .run(JSON.stringify(state), Buffer.from(Automerge.save(record.doc)), now, listId);
   record.state = state;
+  record.dirty = false;
   stateCache.set(listId, record);
 }
 
@@ -287,7 +292,7 @@ function handleMessage(raw, listId, client) {
     const [nextDoc, nextSyncState] = Automerge.receiveSyncMessage(record.doc, client.syncState, message);
     record.doc = nextDoc;
     client.syncState = nextSyncState;
-    persistListRecord(listId, record);
+    markListDirty(listId);
     drainSyncMessages(listId);
   } catch (error) {
     console.warn('Failed to process sync message', error);
@@ -324,7 +329,84 @@ function detachClient(listId, client) {
   clients.delete(client);
   if (clients.size === 0) {
     listClients.delete(listId);
+    cancelPersistTimers(listId);
     scheduleCompact(listId);
+  }
+}
+
+function markListDirty(listId) {
+  const record = loadListRecord(listId);
+  if (!record) return;
+  record.dirty = true;
+
+  const existingDebounce = persistTimers.get(listId);
+  if (existingDebounce) {
+    clearTimeout(existingDebounce);
+  }
+  persistTimers.set(
+    listId,
+    setTimeout(() => {
+      persistTimers.delete(listId);
+      flushListRecord(listId, { compact: false, evict: false });
+    }, PERSIST_DEBOUNCE_MS)
+  );
+
+  if (!forcePersistTimers.has(listId)) {
+    forcePersistTimers.set(
+      listId,
+      setTimeout(() => {
+        forcePersistTimers.delete(listId);
+        flushListRecord(listId, { compact: false, evict: false });
+      }, PERSIST_MAX_DELAY_MS)
+    );
+  }
+}
+
+function cancelPersistTimers(listId) {
+  const debounce = persistTimers.get(listId);
+  if (debounce) {
+    clearTimeout(debounce);
+    persistTimers.delete(listId);
+  }
+  const force = forcePersistTimers.get(listId);
+  if (force) {
+    clearTimeout(force);
+    forcePersistTimers.delete(listId);
+  }
+}
+
+function flushListRecord(listId, { compact = false, evict = false } = {}) {
+  const record = loadListRecord(listId);
+  if (!record) return false;
+  const clients = listClients.get(listId);
+  if (clients && clients.size > 0 && evict) {
+    return false;
+  }
+
+  if (!record.dirty && !compact && !evict) {
+    return true;
+  }
+
+  try {
+    if (compact) {
+      const snapshot = snapshotFromDoc(record.doc);
+      record.doc = docFromSnapshot(snapshot);
+    }
+    persistListRecord(listId, record);
+    return true;
+  } catch (error) {
+    console.warn(`Failed to persist list ${listId}`, error);
+    return false;
+  } finally {
+    if (!record.dirty) {
+      cancelPersistTimers(listId);
+    }
+    if (evict) {
+      const latestClients = listClients.get(listId);
+      if (!latestClients || latestClients.size === 0) {
+        stateCache.delete(listId);
+      }
+    }
   }
 }
 
@@ -349,15 +431,9 @@ function compactList(listId) {
   if (clients && clients.size > 0) {
     return;
   }
-  const record = loadListRecord(listId);
-  if (!record) return;
-  try {
-    const freshDoc = docFromSnapshot(record.state);
-    record.doc = freshDoc;
-    persistListRecord(listId, record);
+  const flushed = flushListRecord(listId, { compact: true, evict: true });
+  if (flushed) {
     console.log(`Compacted Automerge doc for list ${listId}`);
-  } catch (error) {
-    console.warn(`Failed to compact list ${listId}`, error);
   }
 }
 
@@ -368,6 +444,8 @@ function startPruneLoop() {
     db.prepare('DELETE FROM lists WHERE last_access < ?').run(cutoff);
     for (const row of rows) {
       stateCache.delete(row.id);
+      cancelPersistTimers(row.id);
+      cancelCompact(row.id);
       const clients = listClients.get(row.id);
       if (clients) {
         for (const client of clients) {
