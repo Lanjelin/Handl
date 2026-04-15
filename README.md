@@ -1,6 +1,8 @@
 # Handl
 
-A phone-first collaborative shopping list PWA that feels as simple as writing in a text editor while supporting real-time syncing.
+A phone-first collaborative shopping list PWA that feels like writing in a text editor while supporting real-time syncing.
+
+Handl is online-first: shared list data syncs over the websocket connection, while the browser keeps only lightweight local prefs and a small JSON snapshot cache for faster reopen on that device.
 
 ## Available builds
 
@@ -45,7 +47,7 @@ Run with:
 docker compose up -d
 ```
 
-The compose setup mirrors the docker run command and maps `./data` into `/app/data` for persistence.
+The compose setup mirrors the `docker run` example and maps `./data` into `/app/data` for persistence.
 
 ### 3. From source (npm)
 
@@ -84,11 +86,17 @@ Put these in `./data/.env` when running from source or mounting a container volu
 | `PERSIST_MAX_DELAY_MS` | Maximum time before forcing a persistence flush | `30000` |
 | `BROADCAST_DEBOUNCE_MS` | Batch websocket fanout during bursts | `50` |
 | `COMPACT_IDLE_DELAY_MS` | Delay before compacting an idle list | `120000` |
+| `HEARTBEAT_MS` | Interval for websocket heartbeats used to detect stale connections | `15000` |
+| `METRICS_WINDOW_MS` | Rolling window used by `/metrics` for recent request counts | `900000` |
 | `SHARE_CODE_LENGTH` | Length of generated restore codes | `8` |
 | `SHARE_CODE_ALPHABET` | Alphabet used for restore codes | `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` |
+| `DEBUG_METRICS` | Enable lightweight browser console timing logs | `0` |
 
 ## Notes
 
 - Data is stored in `data/handl.db` (SQLite). Make sure your Docker volume or local `data/` directory is writable.
-- The app exposes port `3000` by default. You can override it via `PORT` if needed.
-- When running from npm, you can still reuse the Docker volume contents by pointing your local `data/` directory at the same path.
+- The app listens on port `3000` by default. Override it with `PORT` if needed.
+- If you run from npm, you can still reuse the Docker volume contents by pointing your local `data/` directory at the same path.
+- `/metrics` exposes a small operational snapshot: cached list count, active websocket clients, timer counts, and recent request totals within `METRICS_WINDOW_MS`.
+- The mobile share button uses the native share sheet on supported devices and shares `/?join=<shareCode>`.
+- The browser cache stores only a plain JSON snapshot of the current list plus local preferences; it no longer keeps a full Automerge blob locally.
