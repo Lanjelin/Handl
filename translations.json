@@ -59,6 +59,7 @@
   "strings": {
     "en": {
       "settingsTitle": "Settings",
+      "settingsTooltip": "Open settings",
       "sortChecked": "Keep checked items at the bottom",
       "colorScheme": "Color scheme",
       "removeChecked": "Remove checked items",
@@ -82,6 +83,7 @@
     },
     "no": {
       "settingsTitle": "Innstillinger",
+      "settingsTooltip": "Åpne innstillinger",
       "sortChecked": "Plasser avkryssede nederst",
       "colorScheme": "Fargetema",
       "removeChecked": "Fjern avkryssede",
@@ -105,6 +107,7 @@
     },
     "es": {
       "settingsTitle": "Configuración",
+      "settingsTooltip": "Abrir configuración",
       "sortChecked": "Mantener marcados al final",
       "colorScheme": "Esquema de color",
       "removeChecked": "Eliminar marcados",
@@ -128,6 +131,7 @@
     },
     "sv": {
       "settingsTitle": "Inställningar",
+      "settingsTooltip": "Öppna inställningar",
       "sortChecked": "Håll markerade längst ner",
       "colorScheme": "Färgschema",
       "removeChecked": "Ta bort markerade",
@@ -151,6 +155,7 @@
     },
     "da": {
       "settingsTitle": "Indstillinger",
+      "settingsTooltip": "Åbn indstillinger",
       "sortChecked": "Hold afkrydsede varer nederst",
       "colorScheme": "Farvetema",
       "removeChecked": "Fjern afkrydsede",
@@ -174,6 +179,7 @@
     },
     "fi": {
       "settingsTitle": "Asetukset",
+      "settingsTooltip": "Avaa asetukset",
       "sortChecked": "Pidä valitut tuotteet alhaalla",
       "colorScheme": "Värimaailma",
       "removeChecked": "Poista valitut",
@@ -197,6 +203,7 @@
     },
     "de": {
       "settingsTitle": "Einstellungen",
+      "settingsTooltip": "Einstellungen öffnen",
       "sortChecked": "Markierte unten halten",
       "colorScheme": "Farbschema",
       "removeChecked": "Markierte entfernen",
@@ -220,6 +227,7 @@
     },
     "nl": {
       "settingsTitle": "Instellingen",
+      "settingsTooltip": "Instellingen openen",
       "sortChecked": "Houd aangevinkte items onderaan",
       "colorScheme": "Kleurenschema",
       "removeChecked": "Verwijder aangevinkten",
@@ -243,6 +251,7 @@
     },
     "fr": {
       "settingsTitle": "Paramètres",
+      "settingsTooltip": "Ouvrir les paramètres",
       "sortChecked": "Garder les éléments cochés en bas",
       "colorScheme": "Schéma de couleurs",
       "removeChecked": "Supprimer les cochés",
@@ -266,6 +275,7 @@
     },
     "pt": {
       "settingsTitle": "Configurações",
+      "settingsTooltip": "Abrir configurações",
       "sortChecked": "Manter itens marcados no fim",
       "colorScheme": "Esquema de cores",
       "removeChecked": "Remover marcados",
@@ -289,6 +299,7 @@
     },
     "it": {
       "settingsTitle": "Impostazioni",
+      "settingsTooltip": "Apri impostazioni",
       "sortChecked": "Mantieni gli elementi spuntati in fondo",
       "colorScheme": "Schema colori",
       "removeChecked": "Rimuovi selezionati",

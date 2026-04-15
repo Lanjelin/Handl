@@ -83,6 +83,7 @@ let languages = FALLBACK_LANGUAGES;
 let translations = FALLBACK_TRANSLATIONS;
 let appReady = false;
 let socketGeneration = 0;
+let currentStatusVariant = 'idle';
 
 document.addEventListener('DOMContentLoaded', async () => {
   editor.addEventListener('input', handleEditorInput);
@@ -502,20 +503,12 @@ function setStatus(variant = 'idle') {
     warn: 'cloud_off',
     idle: 'cloud_sync'
   };
-  const locale = getLocale();
-  const labels = {
-    online: locale.statusConnected,
-    warn: locale.statusDisconnected,
-    idle: locale.statusConnecting
-  };
   const target = icons[variant] ? variant : 'idle';
+  currentStatusVariant = target;
   if (statusSymbol) {
     statusSymbol.textContent = icons[target];
   }
-  if (statusIndicator) {
-    statusIndicator.dataset.status = target;
-    statusIndicator.setAttribute('title', labels[target]);
-  }
+  updateStatusTooltip();
 }
 
 function connectSocket() {
@@ -820,6 +813,7 @@ function setLanguage(code) {
   mutateDoc((draft) => {
     draft.settings.language = normalized;
   });
+  applyTranslations();
 }
 
 function getLocale() {
@@ -851,12 +845,30 @@ function applyTranslations() {
   if (restoreCodeInput) {
     restoreCodeInput.placeholder = locale.listIdPlaceholder;
   }
+  if (settingsButton) {
+    settingsButton.setAttribute('title', locale.settingsTooltip);
+    settingsButton.setAttribute('aria-label', locale.settingsTooltip);
+  }
   if (toggleModeButton) {
-    toggleModeButton.setAttribute('aria-label', viewMode ? locale.toggleToEdit : locale.toggleToView);
+    const modeTooltip = viewMode ? locale.toggleToEdit : locale.toggleToView;
+    toggleModeButton.setAttribute('title', modeTooltip);
+    toggleModeButton.setAttribute('aria-label', modeTooltip);
   }
   if (languageSelect) {
     languageSelect.value = translations[settings.language] ? settings.language : 'en';
   }
+  updateStatusTooltip(locale);
+}
+
+function updateStatusTooltip(locale = getLocale()) {
+  if (!statusIndicator) return;
+  const labels = {
+    online: locale.statusConnected,
+    warn: locale.statusDisconnected,
+    idle: locale.statusConnecting
+  };
+  statusIndicator.dataset.status = currentStatusVariant;
+  statusIndicator.setAttribute('title', labels[currentStatusVariant] ?? locale.statusConnecting);
 }
 
 function ensureSettingsFieldVisible(field) {
