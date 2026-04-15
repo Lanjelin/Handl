@@ -341,7 +341,7 @@ function render() {
   });
 
   const shouldUpdateEditor = !viewMode || document.activeElement !== editor;
-  if (shouldUpdateEditor && editor.value.trim() !== textValue) {
+  if (shouldUpdateEditor && normalizeEditorText(editor.value) !== textValue) {
     const previousStart = editor.selectionStart;
     const previousEnd = editor.selectionEnd;
     const previousScroll = editor.scrollTop;
@@ -354,6 +354,14 @@ function render() {
     }
     autoResizeEditor();
   }
+}
+
+function normalizeEditorText(value) {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join('\n');
 }
 
 function updateItemChecked(id, checked) {
