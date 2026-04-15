@@ -23,6 +23,7 @@ loadEnvFile(path.join(BOOT_DATA_DIR, '.env'));
 // - HEARTBEAT_MS sends a tiny websocket heartbeat to detect stale connections.
 // - SHARE_CODE_LENGTH / SHARE_CODE_ALPHABET control restore code generation.
 // - DEBUG_METRICS enables lightweight client-side connection timing logs.
+// - METRICS_WINDOW_MS controls the rolling request window exposed by /metrics.
 const PORT = readEnvInt('PORT', 3000);
 const DATA_DIR = process.env.DATA_DIR ? path.resolve(__dirname, process.env.DATA_DIR) : DEFAULT_DATA_DIR;
 const DB_FILE = process.env.DB_FILE ? path.resolve(__dirname, process.env.DB_FILE) : path.join(DATA_DIR, 'handl.db');
@@ -34,6 +35,7 @@ const PERSIST_MAX_DELAY_MS = readEnvInt('PERSIST_MAX_DELAY_MS', 30 * 1000);
 const BROADCAST_DEBOUNCE_MS = readEnvInt('BROADCAST_DEBOUNCE_MS', 50);
 const COMPACT_IDLE_DELAY_MS = readEnvInt('COMPACT_IDLE_DELAY_MS', 2 * 60 * 1000);
 const HEARTBEAT_MS = readEnvInt('HEARTBEAT_MS', 15000);
+const METRICS_WINDOW_MS = readEnvInt('METRICS_WINDOW_MS', 15 * 60 * 1000);
 const SHARE_CODE_ALPHABET = process.env.SHARE_CODE_ALPHABET || 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SHARE_CODE_LENGTH = readEnvInt('SHARE_CODE_LENGTH', 8);
 const DEBUG_METRICS = readEnvBool('DEBUG_METRICS', false);
@@ -64,6 +66,7 @@ db.exec(`
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(trackRequest);
 
 const stateCache = new Map();
 const listClients = new Map();
@@ -71,6 +74,7 @@ const persistTimers = new Map();
 const forcePersistTimers = new Map();
 const broadcastTimers = new Map();
 const compactTimers = new Map();
+const requestEvents = [];
 
 ensureListSchema();
 startHeartbeatLoop();
@@ -114,6 +118,7 @@ app.post('/join', (req, res) => {
 app.get('/themes.json', (req, res) => res.json(THEMES));
 app.get('/translations.json', (req, res) => res.json(TRANSLATIONS));
 app.get('/config.json', (req, res) => res.json({ title: 'Handl', debugMetrics: DEBUG_METRICS }));
+app.get('/metrics', (req, res) => res.json(buildMetrics()));
 app.use('/vendor/automerge', express.static(AUTOMERGE_MJS_DIR, { maxAge: 0 }));
 app.use(express.static(PUBLIC_DIR, { maxAge: 0 }));
 
@@ -542,6 +547,45 @@ function startHeartbeatLoop() {
       broadcastHeartbeat(listId);
     }
   }, HEARTBEAT_MS);
+}
+
+function trackRequest(req, res, next) {
+  const pathKey = `${req.method} ${req.path}`;
+  const now = Date.now();
+  requestEvents.push({ pathKey, ts: now });
+  pruneRequestEvents(now);
+  next();
+}
+
+function pruneRequestEvents(now = Date.now()) {
+  const cutoff = now - METRICS_WINDOW_MS;
+  while (requestEvents.length > 0 && requestEvents[0].ts < cutoff) {
+    requestEvents.shift();
+  }
+}
+
+function buildMetrics() {
+  const now = Date.now();
+  pruneRequestEvents(now);
+  const recentRequests = {};
+  for (const entry of requestEvents) {
+    recentRequests[entry.pathKey] = (recentRequests[entry.pathKey] || 0) + 1;
+  }
+  const activeWebsocketClients = Array.from(listClients.values()).reduce((sum, clients) => sum + clients.size, 0);
+  return {
+    now,
+    windowMs: METRICS_WINDOW_MS,
+    cachedLists: stateCache.size,
+    trackedLists: listClients.size,
+    activeWebsocketClients,
+    timers: {
+      persist: persistTimers.size,
+      forcePersist: forcePersistTimers.size,
+      broadcast: broadcastTimers.size,
+      compact: compactTimers.size
+    },
+    recentRequests
+  };
 }
 
 function getString(value) {
