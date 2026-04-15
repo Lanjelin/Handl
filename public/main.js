@@ -8,6 +8,7 @@ const checklistContainer = document.getElementById('checklist');
 const itemTemplate = document.getElementById('item-template');
 const statusIndicator = document.getElementById('status-icon');
 const statusSymbol = document.getElementById('status-symbol');
+const presenceIndicator = document.getElementById('presence-indicator');
 const schemeSelect = document.getElementById('scheme-select');
 const titleHeading = document.querySelector('.pane-title h2');
 const settingsButton = document.getElementById('open-settings');
@@ -58,6 +59,7 @@ const FALLBACK_TRANSLATIONS = {
     statusConnected: 'Connected',
     statusDisconnected: 'Disconnected',
     statusConnecting: 'Connecting',
+    presenceOthersViewing: 'Other people are viewing the list',
     loginHeading: 'Unlock',
     loginPasswordLabel: 'Password',
     loginSubmit: 'Enter',
@@ -85,6 +87,7 @@ let translations = FALLBACK_TRANSLATIONS;
 let appReady = false;
 let socketGeneration = 0;
 let currentStatusVariant = 'idle';
+let connectedPeers = 0;
 
 document.addEventListener('DOMContentLoaded', async () => {
   editor.addEventListener('input', handleEditorInput);
@@ -505,7 +508,7 @@ function connectSocket() {
   });
 
   ws.addEventListener('message', (event) => {
-    handleMessage(event.data);
+    handleSocketMessage(event.data);
   });
 
   ws.addEventListener('close', () => {
@@ -596,6 +599,7 @@ async function applySessionResponse(session) {
   }
 
   setDoc(doc, { sync: false, persist: false });
+  updatePresence(0);
   schedulePersistDocument();
   connectSocket();
 }
@@ -687,6 +691,7 @@ function resetSocketState() {
   socketGeneration += 1;
   pendingSync = false;
   syncState = Automerge.initSyncState();
+  updatePresence(0);
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout);
     reconnectTimeout = null;
@@ -717,6 +722,34 @@ function handleMessage(raw) {
   } catch (error) {
     console.warn('Invalid sync payload', error);
   }
+}
+
+function handleSocketMessage(data) {
+  if (typeof data === 'string') {
+    handleControlMessage(data);
+    return;
+  }
+  handleMessage(data);
+}
+
+function handleControlMessage(raw) {
+  try {
+    const message = JSON.parse(raw);
+    if (message?.type === 'presence') {
+      updatePresence(message.connected);
+    }
+  } catch (error) {
+    // Ignore non-control text messages.
+  }
+}
+
+function updatePresence(connected) {
+  const total = Number.parseInt(String(connected), 10);
+  connectedPeers = Number.isFinite(total) ? Math.max(total, 0) : 0;
+  if (presenceIndicator) {
+    presenceIndicator.classList.toggle('hidden', connectedPeers <= 0);
+  }
+  updatePresenceTooltip();
 }
 
 function loadStoredDocument(listId) {
@@ -839,6 +872,7 @@ function applyTranslations() {
     languageSelect.value = translations[settings.language] ? settings.language : 'en';
   }
   updateStatusTooltip(locale);
+  updatePresenceTooltip();
 }
 
 function updateStatusTooltip(locale = getLocale()) {
@@ -850,6 +884,14 @@ function updateStatusTooltip(locale = getLocale()) {
   };
   statusIndicator.dataset.status = currentStatusVariant;
   statusIndicator.setAttribute('title', labels[currentStatusVariant] ?? locale.statusConnecting);
+}
+
+function updatePresenceTooltip() {
+  if (!presenceIndicator) return;
+  const locale = getLocale();
+  const label = locale.presenceOthersViewing || 'Other people are viewing the list';
+  presenceIndicator.setAttribute('title', connectedPeers > 0 ? label : '');
+  presenceIndicator.setAttribute('aria-label', connectedPeers > 0 ? label : '');
 }
 
 function ensureSettingsFieldVisible(field) {

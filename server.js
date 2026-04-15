@@ -127,6 +127,7 @@ wss.on('connection', (ws, listId) => {
   }
   const client = { ws, syncState: Automerge.initSyncState() };
   attachClient(listId, client);
+  broadcastPresence(listId);
   drainSyncMessages(listId);
   ws.on('message', (raw) => handleMessage(raw, listId, client));
   ws.on('close', () => detachClient(listId, client));
@@ -344,7 +345,9 @@ function detachClient(listId, client) {
     cancelPersistTimers(listId);
     cancelBroadcast(listId);
     scheduleCompact(listId);
+    return;
   }
+  broadcastPresence(listId);
 }
 
 function markListDirty(listId) {
@@ -404,6 +407,21 @@ function cancelBroadcast(listId) {
   if (!timer) return;
   clearTimeout(timer);
   broadcastTimers.delete(listId);
+}
+
+function broadcastPresence(listId) {
+  const clients = listClients.get(listId);
+  if (!clients || clients.size === 0) return;
+  for (const client of clients) {
+    if (client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(
+        JSON.stringify({
+          type: 'presence',
+          connected: Math.max(clients.size - 1, 0)
+        })
+      );
+    }
+  }
 }
 
 function flushListRecord(listId, { compact = false, evict = false } = {}) {

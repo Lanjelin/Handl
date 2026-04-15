@@ -79,7 +79,8 @@
       "loginHeading": "Unlock",
       "loginPasswordLabel": "Password",
       "loginSubmit": "Enter",
-      "loginInvalid": "Incorrect password."
+      "loginInvalid": "Incorrect password.",
+      "presenceOthersViewing": "Other people are viewing the list"
     },
     "no": {
       "settingsTitle": "Innstillinger",
@@ -103,7 +104,8 @@
       "loginHeading": "Lås opp",
       "loginPasswordLabel": "Passord",
       "loginSubmit": "Skriv inn",
-      "loginInvalid": "Feil passord."
+      "loginInvalid": "Feil passord.",
+      "presenceOthersViewing": "Andre ser på listen"
     },
     "es": {
       "settingsTitle": "Configuración",
@@ -127,7 +129,8 @@
       "loginHeading": "Desbloquear",
       "loginPasswordLabel": "Contraseña",
       "loginSubmit": "Entrar",
-      "loginInvalid": "Contraseña incorrecta."
+      "loginInvalid": "Contraseña incorrecta.",
+      "presenceOthersViewing": "Otras personas están viendo la lista"
     },
     "sv": {
       "settingsTitle": "Inställningar",
@@ -151,7 +154,8 @@
       "loginHeading": "Koppla upp",
       "loginPasswordLabel": "Lösenord",
       "loginSubmit": "Logga in",
-      "loginInvalid": "Fel lösenord."
+      "loginInvalid": "Fel lösenord.",
+      "presenceOthersViewing": "Andra tittar på listan"
     },
     "da": {
       "settingsTitle": "Indstillinger",
@@ -175,7 +179,8 @@
       "loginHeading": "Lås op",
       "loginPasswordLabel": "Adgangskode",
       "loginSubmit": "Indtast",
-      "loginInvalid": "Forkert adgangskode."
+      "loginInvalid": "Forkert adgangskode.",
+      "presenceOthersViewing": "Andre ser på listen"
     },
     "fi": {
       "settingsTitle": "Asetukset",
@@ -199,7 +204,8 @@
       "loginHeading": "Avaa",
       "loginPasswordLabel": "Salasana",
       "loginSubmit": "Syötä",
-      "loginInvalid": "Väärä salasana."
+      "loginInvalid": "Väärä salasana.",
+      "presenceOthersViewing": "Muut katsovat listaa"
     },
     "de": {
       "settingsTitle": "Einstellungen",
@@ -223,7 +229,8 @@
       "loginHeading": "Entsperren",
       "loginPasswordLabel": "Passwort",
       "loginSubmit": "Einloggen",
-      "loginInvalid": "Falsches Passwort."
+      "loginInvalid": "Falsches Passwort.",
+      "presenceOthersViewing": "Andere sehen die Liste an"
     },
     "nl": {
       "settingsTitle": "Instellingen",
@@ -247,7 +254,8 @@
       "loginHeading": "Ontgrendel",
       "loginPasswordLabel": "Wachtwoord",
       "loginSubmit": "Inloggen",
-      "loginInvalid": "Onjuist wachtwoord."
+      "loginInvalid": "Onjuist wachtwoord.",
+      "presenceOthersViewing": "Andere bekijken de lijst"
     },
     "fr": {
       "settingsTitle": "Paramètres",
@@ -271,7 +279,8 @@
       "loginHeading": "Déverrouiller",
       "loginPasswordLabel": "Mot de passe",
       "loginSubmit": "Entrer",
-      "loginInvalid": "Mot de passe incorrect."
+      "loginInvalid": "Mot de passe incorrect.",
+      "presenceOthersViewing": "D'autres personnes regardent la liste"
     },
     "pt": {
       "settingsTitle": "Configurações",
@@ -295,7 +304,8 @@
       "loginHeading": "Desbloquear",
       "loginPasswordLabel": "Senha",
       "loginSubmit": "Entrar",
-      "loginInvalid": "Senha incorreta."
+      "loginInvalid": "Senha incorreta.",
+      "presenceOthersViewing": "Outras pessoas estão vendo a lista"
     },
     "it": {
       "settingsTitle": "Impostazioni",
@@ -319,7 +329,8 @@
       "loginHeading": "Sblocca",
       "loginPasswordLabel": "Password",
       "loginSubmit": "Entra",
-      "loginInvalid": "Password errata."
+      "loginInvalid": "Password errata.",
+      "presenceOthersViewing": "Altre persone stanno guardando la lista"
     }
   }
 }
