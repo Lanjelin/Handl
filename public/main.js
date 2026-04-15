@@ -22,7 +22,7 @@ const restoreCodeButton = document.getElementById('restore-code-button');
 const themeColorMeta = document.getElementById('theme-color-meta');
 
 const DEFAULT_SETTINGS = { sortChecked: false, colorScheme: 'default', language: 'en' };
-const LOCAL_SETTINGS_KEY = 'handl-settings';
+const LOCAL_SETTINGS_PREFIX = 'handl-settings';
 const LOCAL_TOKEN_KEY = 'handl-session-token';
 const LOCAL_DOC_PREFIX = 'handl-doc';
 const LOCAL_SYNC_PREFIX = 'handl-sync';
@@ -101,9 +101,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (schemeSelect) {
     schemeSelect.addEventListener('change', () => {
-      mutateDoc((draft) => {
-        draft.settings.colorScheme = schemeSelect.value;
-      });
+      settings.colorScheme = schemeSelect.value;
+      persistLocalSettings();
+      applyColorScheme(settings.colorScheme);
     });
   }
 
@@ -136,11 +136,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function bootstrapApp() {
   await automergeReady;
 
-  const localSettings = loadLocalSettings();
-  if (localSettings) {
-    settings = { ...settings, ...localSettings };
-  }
-
   applyColorScheme(settings.colorScheme);
   applyTranslations();
   updateModeUI();
@@ -161,7 +156,6 @@ function createInitialDoc() {
   let initial = Automerge.init();
   initial = Automerge.change(initial, (draft) => {
     draft.items = [];
-    draft.settings = { ...DEFAULT_SETTINGS };
   });
   return initial;
 }
@@ -170,7 +164,6 @@ function docFromSnapshot(snapshot) {
   let loaded = Automerge.init();
   loaded = Automerge.change(loaded, (draft) => {
     draft.items = normalizeItems(snapshot?.items);
-    draft.settings = normalizeSettings(snapshot?.settings);
   });
   return loaded;
 }
@@ -178,8 +171,7 @@ function docFromSnapshot(snapshot) {
 function snapshotFromDoc(source = doc) {
   const raw = Automerge.toJS(source) || {};
   return {
-    items: normalizeItems(raw.items),
-    settings: normalizeSettings(raw.settings)
+    items: normalizeItems(raw.items)
   };
 }
 
@@ -198,22 +190,10 @@ function normalizeItems(source) {
     .filter(Boolean);
 }
 
-function normalizeSettings(source) {
-  if (!source || typeof source !== 'object') {
-    return { ...DEFAULT_SETTINGS };
-  }
-  return {
-    sortChecked: typeof source.sortChecked === 'boolean' ? source.sortChecked : DEFAULT_SETTINGS.sortChecked,
-    colorScheme: typeof source.colorScheme === 'string' ? source.colorScheme : DEFAULT_SETTINGS.colorScheme,
-    language: typeof source.language === 'string' ? source.language : DEFAULT_SETTINGS.language
-  };
-}
-
 function setDoc(nextDoc, { sync = false, persist = true, renderNow = true } = {}) {
   doc = nextDoc || createInitialDoc();
   const snapshot = snapshotFromDoc(doc);
   items = snapshot.items;
-  settings = snapshot.settings;
   if (renderNow) {
     render();
   } else {
@@ -232,7 +212,6 @@ function setDoc(nextDoc, { sync = false, persist = true, renderNow = true } = {}
   if (persist) {
     schedulePersistDocument();
   }
-  persistLocalSettings();
   if (sync) {
     scheduleSync();
   }
@@ -428,9 +407,9 @@ function applySort(source) {
 
 function handleSortToggle() {
   if (!appReady || !doc) return;
-  mutateDoc((draft) => {
-    draft.settings.sortChecked = settingsSort.checked;
-  });
+  settings.sortChecked = settingsSort.checked;
+  persistLocalSettings();
+  render();
 }
 
 function removeCheckedItems() {
@@ -604,6 +583,10 @@ async function applySessionResponse(session) {
   shareCodeValue = session.shareCode ?? '';
   updateShareCodeDisplay();
 
+  const localSettings = loadLocalSettings(activeListId);
+  settings = { ...DEFAULT_SETTINGS, ...(localSettings || {}) };
+  persistLocalSettings();
+
   const cached = loadStoredDocument(activeListId);
   if (cached) {
     doc = cached.doc;
@@ -729,9 +712,7 @@ function handleMessage(raw) {
     syncState = nextSyncState;
     const snapshot = snapshotFromDoc(doc);
     items = snapshot.items;
-    settings = snapshot.settings;
     render();
-    persistLocalSettings();
     schedulePersistDocument();
     drainSync();
   } catch (error) {
@@ -803,6 +784,7 @@ function populateLanguageOptions() {
   const availableCodes = new Set(languages.map((option) => option.code));
   if (!availableCodes.has(settings.language)) {
     settings.language = languages[0]?.code ?? 'en';
+    persistLocalSettings();
   }
   languageSelect.value = settings.language;
 }
@@ -810,9 +792,8 @@ function populateLanguageOptions() {
 function setLanguage(code) {
   if (!appReady || !doc) return;
   const normalized = translations[code] ? code : 'en';
-  mutateDoc((draft) => {
-    draft.settings.language = normalized;
-  });
+  settings.language = normalized;
+  persistLocalSettings();
   applyTranslations();
 }
 
@@ -910,10 +891,11 @@ function updateModeUI() {
   }
 }
 
-function loadLocalSettings() {
-  if (typeof localStorage === 'undefined') return null;
+function loadLocalSettings(listId) {
+  if (typeof localStorage === 'undefined' || !listId) return null;
   try {
-    const raw = localStorage.getItem(LOCAL_SETTINGS_KEY);
+    const key = localSettingsKey(listId);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     const result = {};
@@ -930,8 +912,9 @@ function loadLocalSettings() {
 function persistLocalSettings() {
   if (typeof localStorage === 'undefined') return;
   try {
+    if (!activeListId) return;
     localStorage.setItem(
-      LOCAL_SETTINGS_KEY,
+      localSettingsKey(activeListId),
       JSON.stringify({
         colorScheme: settings.colorScheme,
         language: settings.language,
@@ -941,6 +924,10 @@ function persistLocalSettings() {
   } catch (error) {
     console.warn('Failed to persist local settings', error);
   }
+}
+
+function localSettingsKey(listId) {
+  return `${LOCAL_SETTINGS_PREFIX}:${listId}`;
 }
 
 function toUint8Array(value) {

@@ -22,12 +22,7 @@ const THEMES = JSON.parse(readFileSync(path.join(__dirname, 'themes.json'), 'utf
 const TRANSLATIONS = JSON.parse(readFileSync(path.join(__dirname, 'translations.json'), 'utf8'));
 
 const defaultSnapshot = {
-  items: [],
-  settings: {
-    sortChecked: false,
-    colorScheme: 'default',
-    language: 'en'
-  },
+  items: []
 };
 
 mkdirSync(DATA_DIR, { recursive: true });
@@ -212,7 +207,6 @@ function createInitialDoc() {
   let doc = Automerge.init();
   doc = Automerge.change(doc, (draft) => {
     draft.items = [];
-    draft.settings = { ...defaultSnapshot.settings };
   });
   return doc;
 }
@@ -220,15 +214,13 @@ function createInitialDoc() {
 function snapshotFromDoc(doc) {
   const raw = Automerge.toJS(doc) || {};
   return {
-    items: Array.isArray(raw.items) ? normalizeItems(raw.items) : [],
-    settings: { ...defaultSnapshot.settings, ...(raw.settings || {}) }
+    items: Array.isArray(raw.items) ? normalizeItems(raw.items) : []
   };
 }
 
 function docFromSnapshot(snapshot) {
   return Automerge.change(Automerge.init(), (draft) => {
     draft.items = Array.isArray(snapshot.items) ? normalizeItems(snapshot.items) : [];
-    draft.settings = { ...defaultSnapshot.settings, ...(snapshot.settings || {}) };
   });
 }
 
