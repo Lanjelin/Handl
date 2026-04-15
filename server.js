@@ -91,6 +91,21 @@ app.post('/restore', (req, res) => {
   }
 });
 
+app.post('/join', (req, res) => {
+  const code = (req.body?.code ?? req.body?.shareCode ?? req.body?.listId ?? '').toString().trim().toUpperCase();
+  const providedToken = getString(req.body?.token ?? req.query.token);
+  if (!code) {
+    res.status(400).json({ error: 'share code is required' });
+    return;
+  }
+  try {
+    const session = restoreWithCode(code, providedToken);
+    res.json(formatSessionResponse(session));
+  } catch (err) {
+    res.status(404).json({ error: err.message });
+  }
+});
+
 app.get('/themes.json', (req, res) => res.json(THEMES));
 app.get('/translations.json', (req, res) => res.json(TRANSLATIONS));
 app.get('/config.json', (req, res) => res.json({ title: 'Handl' }));

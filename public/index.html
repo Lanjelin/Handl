@@ -73,6 +73,18 @@
                 presenceIndicator.setAttribute('aria-label', locale.presenceOthersViewing);
               }
 
+              const copyListIdButton = document.getElementById('copy-share-code-button');
+              if (copyListIdButton && locale.copyListId) {
+                copyListIdButton.setAttribute('title', locale.copyListId);
+                copyListIdButton.setAttribute('aria-label', locale.copyListId);
+              }
+
+              const shareListButton = document.getElementById('share-list-button');
+              if (shareListButton && locale.shareList) {
+                shareListButton.setAttribute('title', locale.shareList);
+                shareListButton.setAttribute('aria-label', locale.shareList);
+              }
+
               const restore = document.getElementById('restore-code-input');
               if (restore && locale.listIdPlaceholder) {
                 restore.placeholder = locale.listIdPlaceholder;
@@ -177,6 +189,12 @@ Bread"
             <span data-i18n="listIdLabel">List ID</span>
             <div class="share-actions">
               <input id="settings-share-code" class="share-code-field" readonly />
+              <button id="copy-share-code-button" class="ghost icon-button share-copy-button" type="button" aria-label="Copy list ID">
+                <span class="material-symbols-outlined">content_copy</span>
+              </button>
+              <button id="share-list-button" class="ghost icon-button share-native-button hidden" type="button" aria-label="Share list">
+                <span class="material-symbols-outlined">share</span>
+              </button>
             </div>
           </label>
           <label class="setting stacked">

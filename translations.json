@@ -80,7 +80,10 @@
       "loginPasswordLabel": "Password",
       "loginSubmit": "Enter",
       "loginInvalid": "Incorrect password.",
-      "presenceOthersViewing": "Other people are viewing the list"
+      "presenceOthersViewing": "Other people are viewing the list",
+      "copyListId": "Copy list ID",
+      "shareList": "Share list",
+      "shareJoinTitle": "Join Handl list"
     },
     "no": {
       "settingsTitle": "Innstillinger",
@@ -105,7 +108,10 @@
       "loginPasswordLabel": "Passord",
       "loginSubmit": "Skriv inn",
       "loginInvalid": "Feil passord.",
-      "presenceOthersViewing": "Andre ser på listen"
+      "presenceOthersViewing": "Andre ser på listen",
+      "copyListId": "Kopier liste-ID",
+      "shareList": "Del listen",
+      "shareJoinTitle": "Bli med i Handl-listen"
     },
     "es": {
       "settingsTitle": "Configuración",
@@ -130,7 +136,10 @@
       "loginPasswordLabel": "Contraseña",
       "loginSubmit": "Entrar",
       "loginInvalid": "Contraseña incorrecta.",
-      "presenceOthersViewing": "Otras personas están viendo la lista"
+      "presenceOthersViewing": "Otras personas están viendo la lista",
+      "copyListId": "Copiar ID de la lista",
+      "shareList": "Compartir lista",
+      "shareJoinTitle": "Unirse a la lista de Handl"
     },
     "sv": {
       "settingsTitle": "Inställningar",
@@ -155,7 +164,10 @@
       "loginPasswordLabel": "Lösenord",
       "loginSubmit": "Logga in",
       "loginInvalid": "Fel lösenord.",
-      "presenceOthersViewing": "Andra tittar på listan"
+      "presenceOthersViewing": "Andra tittar på listan",
+      "copyListId": "Kopiera list-ID",
+      "shareList": "Dela listan",
+      "shareJoinTitle": "Gå med i Handl-listan"
     },
     "da": {
       "settingsTitle": "Indstillinger",
@@ -180,7 +192,10 @@
       "loginPasswordLabel": "Adgangskode",
       "loginSubmit": "Indtast",
       "loginInvalid": "Forkert adgangskode.",
-      "presenceOthersViewing": "Andre ser på listen"
+      "presenceOthersViewing": "Andre ser på listen",
+      "copyListId": "Kopiér liste-ID",
+      "shareList": "Del listen",
+      "shareJoinTitle": "Deltag i Handl-listen"
     },
     "fi": {
       "settingsTitle": "Asetukset",
@@ -205,7 +220,10 @@
       "loginPasswordLabel": "Salasana",
       "loginSubmit": "Syötä",
       "loginInvalid": "Väärä salasana.",
-      "presenceOthersViewing": "Muut katsovat listaa"
+      "presenceOthersViewing": "Muut katsovat listaa",
+      "copyListId": "Kopioi lista-ID",
+      "shareList": "Jaa lista",
+      "shareJoinTitle": "Liity Handl-listaan"
     },
     "de": {
       "settingsTitle": "Einstellungen",
@@ -230,7 +248,10 @@
       "loginPasswordLabel": "Passwort",
       "loginSubmit": "Einloggen",
       "loginInvalid": "Falsches Passwort.",
-      "presenceOthersViewing": "Andere sehen die Liste an"
+      "presenceOthersViewing": "Andere sehen die Liste an",
+      "copyListId": "Listen-ID kopieren",
+      "shareList": "Liste teilen",
+      "shareJoinTitle": "Handl-Liste beitreten"
     },
     "nl": {
       "settingsTitle": "Instellingen",
@@ -255,7 +276,10 @@
       "loginPasswordLabel": "Wachtwoord",
       "loginSubmit": "Inloggen",
       "loginInvalid": "Onjuist wachtwoord.",
-      "presenceOthersViewing": "Andere bekijken de lijst"
+      "presenceOthersViewing": "Andere bekijken de lijst",
+      "copyListId": "Lijst-ID kopiëren",
+      "shareList": "Lijst delen",
+      "shareJoinTitle": "De Handl-lijst openen"
     },
     "fr": {
       "settingsTitle": "Paramètres",
@@ -280,7 +304,10 @@
       "loginPasswordLabel": "Mot de passe",
       "loginSubmit": "Entrer",
       "loginInvalid": "Mot de passe incorrect.",
-      "presenceOthersViewing": "D'autres personnes regardent la liste"
+      "presenceOthersViewing": "D'autres personnes regardent la liste",
+      "copyListId": "Copier l’ID de la liste",
+      "shareList": "Partager la liste",
+      "shareJoinTitle": "Rejoindre la liste Handl"
     },
     "pt": {
       "settingsTitle": "Configurações",
@@ -305,7 +332,10 @@
       "loginPasswordLabel": "Senha",
       "loginSubmit": "Entrar",
       "loginInvalid": "Senha incorreta.",
-      "presenceOthersViewing": "Outras pessoas estão vendo a lista"
+      "presenceOthersViewing": "Outras pessoas estão vendo a lista",
+      "copyListId": "Copiar ID da lista",
+      "shareList": "Partilhar lista",
+      "shareJoinTitle": "Entrar na lista Handl"
     },
     "it": {
       "settingsTitle": "Impostazioni",
@@ -330,7 +360,10 @@
       "loginPasswordLabel": "Password",
       "loginSubmit": "Entra",
       "loginInvalid": "Password errata.",
-      "presenceOthersViewing": "Altre persone stanno guardando la lista"
+      "presenceOthersViewing": "Altre persone stanno guardando la lista",
+      "copyListId": "Copia ID lista",
+      "shareList": "Condividi lista",
+      "shareJoinTitle": "Unisciti alla lista Handl"
     }
   }
 }

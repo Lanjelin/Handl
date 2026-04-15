@@ -18,6 +18,8 @@ const removeCheckedButton = document.getElementById('remove-checked');
 const closeSettingsButton = document.getElementById('close-settings');
 const languageSelect = document.getElementById('language-select');
 const shareCodeInput = document.getElementById('settings-share-code');
+const copyShareCodeButton = document.getElementById('copy-share-code-button');
+const shareListButton = document.getElementById('share-list-button');
 const restoreCodeInput = document.getElementById('restore-code-input');
 const restoreCodeButton = document.getElementById('restore-code-button');
 const themeColorMeta = document.getElementById('theme-color-meta');
@@ -60,6 +62,9 @@ const FALLBACK_TRANSLATIONS = {
     statusDisconnected: 'Disconnected',
     statusConnecting: 'Connecting',
     presenceOthersViewing: 'Other people are viewing the list',
+    copyListId: 'Copy list ID',
+    shareList: 'Share list',
+    shareJoinTitle: 'Join Handl list',
     loginHeading: 'Unlock',
     loginPasswordLabel: 'Password',
     loginSubmit: 'Enter',
@@ -96,6 +101,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   settingsSort.addEventListener('change', handleSortToggle);
   removeCheckedButton.addEventListener('click', removeCheckedItems);
   toggleModeButton.addEventListener('click', toggleMode);
+  copyShareCodeButton?.addEventListener('click', copyListIdToClipboard);
+  shareListButton?.addEventListener('click', shareListLink);
   languageSelect?.addEventListener('change', (event) => setLanguage(event.target.value));
   settingsDialog.addEventListener('click', (event) => {
     if (event.target === settingsDialog) {
@@ -151,6 +158,7 @@ async function bootstrapApp() {
     applyTranslations();
     updateModeUI();
     setStatus('idle');
+    updateNativeShareAvailability();
 
     doc = createInitialDoc();
     syncState = Automerge.initSyncState();
@@ -528,6 +536,18 @@ async function initializeSession() {
   try {
     sessionToken = loadSessionToken() || crypto.randomUUID?.() || Math.random().toString(36).slice(2);
     persistSessionToken(sessionToken);
+    const joinCode = getJoinCodeFromUrl();
+    if (joinCode) {
+      await joinList(joinCode);
+      clearJoinCodeFromUrl();
+      return;
+    }
+    const restoreCode = getRestoreCodeFromUrl();
+    if (restoreCode) {
+      await restoreList(restoreCode);
+      clearJoinCodeFromUrl();
+      return;
+    }
     const url = `/session?token=${encodeURIComponent(sessionToken)}`;
     const res = await fetch(url);
     if (!res.ok) {
@@ -558,6 +578,7 @@ async function restoreList(code) {
     if (restoreCodeInput) {
       restoreCodeInput.value = '';
     }
+    clearJoinCodeFromUrl();
   } catch (error) {
     console.warn('Failed to restore list', error);
     alert('Unable to restore the list. Check the code and try again.');
@@ -623,6 +644,113 @@ function updateShareCodeDisplay() {
   if (shareCodeInput) {
     shareCodeInput.value = code;
   }
+  updateNativeShareAvailability();
+}
+
+async function copyListIdToClipboard() {
+  const value = (shareCodeValue || shareCodeInput?.value || '').trim();
+  if (!value) return;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return;
+    }
+
+    const fallback = document.createElement('textarea');
+    fallback.value = value;
+    fallback.setAttribute('readonly', 'true');
+    fallback.style.position = 'fixed';
+    fallback.style.left = '-9999px';
+    document.body.appendChild(fallback);
+    fallback.select();
+    document.execCommand('copy');
+    document.body.removeChild(fallback);
+  } catch (error) {
+    console.warn('Failed to copy list ID', error);
+  }
+}
+
+async function shareListLink() {
+  const code = (shareCodeValue || '').trim();
+  if (!code) return;
+  const locale = getLocale();
+  const url = new URL(location.href);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('join', code);
+  const joinUrl = url.toString();
+  const shareData = {
+    title: `${locale.shareJoinTitle || 'Join Handl list'} ${code}`,
+    text: joinUrl,
+    url: joinUrl
+  };
+
+  try {
+    if (navigator.share && canUseNativeShare()) {
+      await navigator.share(shareData);
+    }
+  } catch (error) {
+    console.warn('Failed to open native share sheet', error);
+  }
+}
+
+function canUseNativeShare() {
+  if (!navigator.share) return false;
+  if (navigator.userAgentData?.mobile) return true;
+  return window.matchMedia?.('(pointer: coarse)')?.matches || false;
+}
+
+function updateNativeShareAvailability() {
+  if (!shareListButton) return;
+  shareListButton.classList.toggle('hidden', !canUseNativeShare());
+}
+
+async function joinList(listId) {
+  const code = (listId || '').trim();
+  if (!code) return;
+  try {
+    const res = await fetch('/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, token: sessionToken })
+    });
+    if (!res.ok) throw new Error('join failed');
+    const session = await res.json();
+    await applySessionResponse(session);
+    if (settingsDialog.open) {
+      settingsDialog.close();
+    }
+    if (restoreCodeInput) {
+      restoreCodeInput.value = '';
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === 'join failed') {
+      await restoreList(code.toUpperCase());
+      return;
+    }
+    console.warn('Failed to join list', error);
+    alert('Unable to join the list. Check the link and try again.');
+  }
+}
+
+function getJoinCodeFromUrl() {
+  const params = new URL(location.href).searchParams;
+  return (params.get('join') || '').trim();
+}
+
+function getRestoreCodeFromUrl() {
+  const params = new URL(location.href).searchParams;
+  return (params.get('restore') || '').trim().toUpperCase();
+}
+
+function clearJoinCodeFromUrl() {
+  const url = new URL(location.href);
+  if (!url.searchParams.has('join') && !url.searchParams.has('restore')) return;
+  url.searchParams.delete('join');
+  url.searchParams.delete('restore');
+  const query = url.searchParams.toString();
+  const next = `${url.pathname}${query ? `?${query}` : ''}${url.hash}`;
+  history.replaceState({}, '', next);
 }
 
 function loadSessionToken() {
@@ -858,6 +986,14 @@ function applyTranslations() {
   if (joinButton) joinButton.textContent = locale.joinButton;
   if (restoreCodeInput) {
     restoreCodeInput.placeholder = locale.listIdPlaceholder;
+  }
+  if (copyShareCodeButton) {
+    copyShareCodeButton.setAttribute('title', locale.copyListId);
+    copyShareCodeButton.setAttribute('aria-label', locale.copyListId);
+  }
+  if (shareListButton) {
+    shareListButton.setAttribute('title', locale.shareList);
+    shareListButton.setAttribute('aria-label', locale.shareList);
   }
   if (settingsButton) {
     settingsButton.setAttribute('title', locale.settingsTooltip);
