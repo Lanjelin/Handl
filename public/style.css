@@ -235,6 +235,8 @@ button.danger {
 
 .single-edit {
   width: 100%;
+  display: block;
+  min-height: 14rem;
   border-radius: 0.9rem;
   border: 1px solid var(--panel-border);
   background: var(--checkbox-bg);
@@ -243,9 +245,10 @@ button.danger {
   padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom)) 1rem;
   resize: none;
   font-family: 'Inter', system-ui, sans-serif;
-  overflow: hidden;
+  overflow-y: hidden;
+  overflow-x: hidden;
   line-height: 1.4;
-  min-height: 0;
+  flex: 0 0 auto;
 }
 
 .single-view,

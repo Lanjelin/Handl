@@ -390,19 +390,6 @@ async function fetchConfig() {
 function autoResizeEditor() {
   editor.style.height = 'auto';
   editor.style.height = `${editor.scrollHeight}px`;
-  keepEditorVisible();
-}
-
-function keepEditorVisible() {
-  if (viewMode) return;
-  const rect = editor.getBoundingClientRect();
-  const safeBottom = window.innerHeight - 80;
-  if (rect.bottom > safeBottom) {
-    window.scrollBy({
-      top: rect.bottom - safeBottom,
-      behavior: 'smooth'
-    });
-  }
 }
 
 function applySort(source) {
