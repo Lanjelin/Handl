@@ -53,9 +53,11 @@ const stateCache = new Map();
 const listClients = new Map();
 const persistTimers = new Map();
 const forcePersistTimers = new Map();
+const broadcastTimers = new Map();
 const compactTimers = new Map();
 const PERSIST_DEBOUNCE_MS = 750;
 const PERSIST_MAX_DELAY_MS = 30 * 1000;
+const BROADCAST_DEBOUNCE_MS = 50;
 const COMPACT_IDLE_DELAY_MS = 2 * 60 * 1000;
 
 ensureListSchema();
@@ -293,7 +295,7 @@ function handleMessage(raw, listId, client) {
     record.doc = nextDoc;
     client.syncState = nextSyncState;
     markListDirty(listId);
-    drainSyncMessages(listId);
+    scheduleBroadcast(listId);
   } catch (error) {
     console.warn('Failed to process sync message', error);
   }
@@ -330,6 +332,7 @@ function detachClient(listId, client) {
   if (clients.size === 0) {
     listClients.delete(listId);
     cancelPersistTimers(listId);
+    cancelBroadcast(listId);
     scheduleCompact(listId);
   }
 }
@@ -373,6 +376,24 @@ function cancelPersistTimers(listId) {
     clearTimeout(force);
     forcePersistTimers.delete(listId);
   }
+}
+
+function scheduleBroadcast(listId) {
+  if (broadcastTimers.has(listId)) return;
+  broadcastTimers.set(
+    listId,
+    setTimeout(() => {
+      broadcastTimers.delete(listId);
+      drainSyncMessages(listId);
+    }, BROADCAST_DEBOUNCE_MS)
+  );
+}
+
+function cancelBroadcast(listId) {
+  const timer = broadcastTimers.get(listId);
+  if (!timer) return;
+  clearTimeout(timer);
+  broadcastTimers.delete(listId);
 }
 
 function flushListRecord(listId, { compact = false, evict = false } = {}) {
@@ -445,6 +466,7 @@ function startPruneLoop() {
     for (const row of rows) {
       stateCache.delete(row.id);
       cancelPersistTimers(row.id);
+      cancelBroadcast(row.id);
       cancelCompact(row.id);
       const clients = listClients.get(row.id);
       if (clients) {
