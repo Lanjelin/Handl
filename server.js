@@ -51,6 +51,8 @@ app.use(express.urlencoded({ extended: false }));
 
 const stateCache = new Map();
 const listClients = new Map();
+const compactTimers = new Map();
+const COMPACT_IDLE_DELAY_MS = 2 * 60 * 1000;
 
 ensureListSchema();
 
@@ -310,6 +312,7 @@ function drainSyncMessages(listId) {
 }
 
 function attachClient(listId, client) {
+  cancelCompact(listId);
   const clients = listClients.get(listId) ?? new Set();
   clients.add(client);
   listClients.set(listId, clients);
@@ -321,6 +324,40 @@ function detachClient(listId, client) {
   clients.delete(client);
   if (clients.size === 0) {
     listClients.delete(listId);
+    scheduleCompact(listId);
+  }
+}
+
+function scheduleCompact(listId) {
+  if (compactTimers.has(listId)) return;
+  const timer = setTimeout(() => {
+    compactTimers.delete(listId);
+    compactList(listId);
+  }, COMPACT_IDLE_DELAY_MS);
+  compactTimers.set(listId, timer);
+}
+
+function cancelCompact(listId) {
+  const timer = compactTimers.get(listId);
+  if (!timer) return;
+  clearTimeout(timer);
+  compactTimers.delete(listId);
+}
+
+function compactList(listId) {
+  const clients = listClients.get(listId);
+  if (clients && clients.size > 0) {
+    return;
+  }
+  const record = loadListRecord(listId);
+  if (!record) return;
+  try {
+    const freshDoc = docFromSnapshot(record.state);
+    record.doc = freshDoc;
+    persistListRecord(listId, record);
+    console.log(`Compacted Automerge doc for list ${listId}`);
+  } catch (error) {
+    console.warn(`Failed to compact list ${listId}`, error);
   }
 }
 
