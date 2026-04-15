@@ -23,6 +23,7 @@ const themeColorMeta = document.getElementById('theme-color-meta');
 
 const DEFAULT_SETTINGS = { sortChecked: false, colorScheme: 'default', language: 'en' };
 const LOCAL_SETTINGS_PREFIX = 'handl-settings';
+const LOCAL_UI_PREFIX = 'handl-ui-cache';
 const LOCAL_TOKEN_KEY = 'handl-session-token';
 const LOCAL_DOC_PREFIX = 'handl-doc';
 const LOCAL_SYNC_PREFIX = 'handl-sync';
@@ -103,6 +104,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     schemeSelect.addEventListener('change', () => {
       settings.colorScheme = schemeSelect.value;
       persistLocalSettings();
+      persistUiCache();
       applyColorScheme(settings.colorScheme);
     });
   }
@@ -134,22 +136,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function bootstrapApp() {
-  await automergeReady;
+  try {
+    await automergeReady;
 
-  applyColorScheme(settings.colorScheme);
-  applyTranslations();
-  updateModeUI();
-  setStatus('idle');
+    hydrateBootState();
 
-  await fetchThemeCatalog();
-  await fetchTranslationCatalog();
+    await fetchThemeCatalog();
+    await fetchTranslationCatalog();
 
-  doc = createInitialDoc();
-  syncState = Automerge.initSyncState();
-  appReady = true;
+    applyColorScheme(settings.colorScheme);
+    applyTranslations();
+    updateModeUI();
+    setStatus('idle');
 
-  await initializeSession();
-  fetchConfig();
+    doc = createInitialDoc();
+    syncState = Automerge.initSyncState();
+    appReady = true;
+
+    await initializeSession();
+    fetchConfig();
+  } finally {
+    // no-op
+  }
 }
 
 function createInitialDoc() {
@@ -409,6 +417,7 @@ function handleSortToggle() {
   if (!appReady || !doc) return;
   settings.sortChecked = settingsSort.checked;
   persistLocalSettings();
+  persistUiCache();
   render();
 }
 
@@ -443,6 +452,7 @@ async function fetchThemeCatalog() {
     );
     populateThemeOptions();
     applyColorScheme(settings.colorScheme);
+    persistUiCache();
   } catch (error) {
     console.warn('Failed to load themes', error);
   }
@@ -462,6 +472,7 @@ async function fetchTranslationCatalog() {
   }
   populateLanguageOptions();
   applyTranslations();
+  persistUiCache();
 }
 
 function populateThemeOptions() {
@@ -582,6 +593,7 @@ async function applySessionResponse(session) {
   activeListId = nextListId;
   shareCodeValue = session.shareCode ?? '';
   updateShareCodeDisplay();
+  persistActiveListId();
 
   const localSettings = loadLocalSettings(activeListId);
   settings = { ...DEFAULT_SETTINGS, ...(localSettings || {}) };
@@ -794,6 +806,7 @@ function setLanguage(code) {
   const normalized = translations[code] ? code : 'en';
   settings.language = normalized;
   persistLocalSettings();
+  persistUiCache();
   applyTranslations();
 }
 
@@ -928,6 +941,69 @@ function persistLocalSettings() {
 
 function localSettingsKey(listId) {
   return `${LOCAL_SETTINGS_PREFIX}:${listId}`;
+}
+
+function persistActiveListId() {
+  if (typeof localStorage === 'undefined' || !activeListId) return;
+  try {
+    localStorage.setItem('handl-active-list-id', activeListId);
+  } catch (error) {
+    console.warn('Failed to persist active list id', error);
+  }
+}
+
+function persistUiCache() {
+  if (typeof localStorage === 'undefined' || !activeListId) return;
+  try {
+    const theme = themeCatalog[settings.colorScheme] ?? FALLBACK_THEME;
+    const locale = translations[settings.language] ?? translations.en;
+    localStorage.setItem(
+      `${LOCAL_UI_PREFIX}:${activeListId}`,
+      JSON.stringify({
+        colorScheme: settings.colorScheme,
+        language: settings.language,
+        theme: {
+          metaColor: theme.metaColor || FALLBACK_THEME_META_COLOR,
+          variables: theme.variables || {}
+        },
+        locale
+      })
+    );
+  } catch (error) {
+    console.warn('Failed to persist ui cache', error);
+  }
+}
+
+function hydrateBootState() {
+  const boot = globalThis.__handlBoot || {};
+  if (boot.activeListId) {
+    activeListId = boot.activeListId;
+  }
+  if (boot.settings && typeof boot.settings === 'object') {
+    settings = { ...settings, ...boot.settings };
+  }
+  if (boot.ui && typeof boot.ui === 'object') {
+    if (boot.ui.theme) {
+      themeCatalog = {
+        default: FALLBACK_THEME,
+        [settings.colorScheme]: {
+          label: settings.colorScheme,
+          metaColor: boot.ui.theme.metaColor || FALLBACK_THEME_META_COLOR,
+          variables: boot.ui.theme.variables || {}
+        }
+      };
+      themeColorMap = {
+        default: FALLBACK_THEME_META_COLOR,
+        [settings.colorScheme]: boot.ui.theme.metaColor || FALLBACK_THEME_META_COLOR
+      };
+    }
+    if (boot.ui.locale) {
+      translations = {
+        ...FALLBACK_TRANSLATIONS,
+        [settings.language]: boot.ui.locale
+      };
+    }
+  }
 }
 
 function toUint8Array(value) {

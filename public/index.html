@@ -8,6 +8,78 @@
     <title>Handl — Shared Shopping List</title>
     <meta name="description" content="Phone-friendly collaborative shopping list" />
     <meta name="theme-color" content="#0f172a" id="theme-color-meta" />
+    <script>
+      (() => {
+        const DEFAULT_THEME_META_COLOR = '#0f172a';
+        const LOCAL_SETTINGS_PREFIX = 'handl-settings';
+        const LOCAL_UI_PREFIX = 'handl-ui-cache';
+        try {
+          const activeListId = localStorage.getItem('handl-active-list-id') || '';
+          const settingsRaw = activeListId ? localStorage.getItem(`${LOCAL_SETTINGS_PREFIX}:${activeListId}`) : null;
+          const uiRaw = activeListId ? localStorage.getItem(`${LOCAL_UI_PREFIX}:${activeListId}`) : null;
+          const settings = settingsRaw ? JSON.parse(settingsRaw) : {};
+          const ui = uiRaw ? JSON.parse(uiRaw) : {};
+          const theme = ui.theme || {};
+          const locale = ui.locale || {};
+          const language = settings.language || ui.language || 'en';
+
+          document.documentElement.lang = language;
+          document.documentElement.dataset.scheme = settings.colorScheme || ui.colorScheme || 'default';
+
+          const meta = document.getElementById('theme-color-meta');
+          if (meta) {
+            meta.setAttribute('content', theme.metaColor || DEFAULT_THEME_META_COLOR);
+          }
+
+          if (theme.variables) {
+            for (const [key, value] of Object.entries(theme.variables)) {
+              if (typeof value === 'string') {
+                document.documentElement.style.setProperty(key, value);
+              }
+            }
+          }
+
+          if (locale && typeof locale === 'object') {
+            document.addEventListener('DOMContentLoaded', () => {
+              const setText = (selector, value) => {
+                if (!value) return;
+                const element = document.querySelector(selector);
+                if (element) element.textContent = value;
+              };
+              setText('[data-i18n="settingsTitle"]', locale.settingsTitle);
+              setText('[data-i18n="sortChecked"]', locale.sortChecked);
+              setText('[data-i18n="colorScheme"]', locale.colorScheme);
+              setText('[data-i18n="removeChecked"]', locale.removeChecked);
+              setText('[data-i18n="languageLabel"]', locale.languageLabel);
+              setText('[data-i18n="listIdLabel"]', locale.listIdLabel);
+              setText('[data-i18n="joinListLabel"]', locale.joinListLabel);
+              setText('[data-i18n="joinButton"]', locale.joinButton);
+
+              const settingsButton = document.getElementById('open-settings');
+              if (settingsButton && locale.settingsTooltip) {
+                settingsButton.setAttribute('title', locale.settingsTooltip);
+                settingsButton.setAttribute('aria-label', locale.settingsTooltip);
+              }
+
+              const toggleModeButton = document.getElementById('toggle-mode');
+              if (toggleModeButton && locale.toggleToEdit) {
+                toggleModeButton.setAttribute('title', locale.toggleToEdit);
+                toggleModeButton.setAttribute('aria-label', locale.toggleToEdit);
+              }
+
+              const restore = document.getElementById('restore-code-input');
+              if (restore && locale.listIdPlaceholder) {
+                restore.placeholder = locale.listIdPlaceholder;
+              }
+            }, { once: true });
+          }
+
+          window.__handlBoot = { activeListId, settings, ui };
+        } catch (error) {
+          window.__handlBoot = { activeListId: '', settings: {}, ui: null };
+        }
+      })();
+    </script>
     <link rel="manifest" href="/manifest.json" />
     <link rel="stylesheet" href="/style.css" />
     <link
