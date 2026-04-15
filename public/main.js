@@ -90,6 +90,12 @@ let themeColorMap = { default: FALLBACK_THEME_META_COLOR };
 let languages = FALLBACK_LANGUAGES;
 let translations = FALLBACK_TRANSLATIONS;
 let appReady = false;
+let debugMetricsEnabled = false;
+let bootstrapStartedAt = performance.now();
+let sessionFetchStartedAt = 0;
+let websocketConnectStartedAt = 0;
+let heartbeatTimeout = null;
+let lastHeartbeatAt = 0;
 let socketGeneration = 0;
 let currentStatusVariant = 'idle';
 let connectedPeers = 0;
@@ -149,6 +155,7 @@ async function bootstrapApp() {
   try {
     await automergeReady;
 
+    debugMark('automerge-ready');
     hydrateBootState();
 
     await fetchThemeCatalog();
@@ -164,8 +171,8 @@ async function bootstrapApp() {
     syncState = Automerge.initSyncState();
     appReady = true;
 
+    await fetchConfig();
     await initializeSession();
-    fetchConfig();
   } finally {
     // no-op
   }
@@ -384,11 +391,35 @@ function applyThemeVariables(theme = FALLBACK_THEME) {
   }
 }
 
+function debugMetric(label, data = {}) {
+  if (!debugMetricsEnabled) return;
+  console.info(`[Handl metrics] ${label}`, {
+    ...data,
+    tsMs: Math.round(performance.now())
+  });
+}
+
+function debugMark(label) {
+  if (!debugMetricsEnabled) return;
+  console.info(`[Handl metrics] ${label}`, {
+    tsMs: Math.round(performance.now())
+  });
+}
+
+function elapsedMs(startAt) {
+  return startAt ? Math.round(performance.now() - startAt) : null;
+}
+
 async function fetchConfig() {
   try {
     const res = await fetch('/config.json');
     if (!res.ok) throw new Error('config unavailable');
     const json = await res.json();
+    debugMetricsEnabled = Boolean(json?.debugMetrics);
+    debugMetric('config-loaded', {
+      totalBootstrapMs: elapsedMs(bootstrapStartedAt),
+      debugMetrics: debugMetricsEnabled
+    });
     if (json?.title) {
       document.title = json.title;
       if (titleHeading) titleHeading.textContent = json.title;
@@ -507,11 +538,16 @@ function connectSocket() {
   const generation = socketGeneration;
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
   const query = `?token=${encodeURIComponent(sessionToken)}`;
+  websocketConnectStartedAt = performance.now();
   ws = new WebSocket(`${scheme}://${location.host}${query}`);
   ws.binaryType = 'arraybuffer';
 
   ws.addEventListener('open', () => {
+    debugMetric('ws-open', {
+      connectMs: elapsedMs(websocketConnectStartedAt)
+    });
     setStatus('online');
+    markHeartbeatSeen();
     drainSync();
   });
 
@@ -521,13 +557,21 @@ function connectSocket() {
 
   ws.addEventListener('close', () => {
     if (generation !== socketGeneration) return;
+    debugMetric('ws-close', {
+      connectMs: elapsedMs(websocketConnectStartedAt)
+    });
     setStatus('warn');
+    clearHeartbeatWatchdog();
     scheduleReconnect();
   });
 
   ws.addEventListener('error', () => {
     if (generation !== socketGeneration) return;
+    debugMetric('ws-error', {
+      connectMs: elapsedMs(websocketConnectStartedAt)
+    });
     setStatus('warn');
+    clearHeartbeatWatchdog();
     ws.close();
   });
 }
@@ -548,12 +592,17 @@ async function initializeSession() {
       clearJoinCodeFromUrl();
       return;
     }
+    sessionFetchStartedAt = performance.now();
     const url = `/session?token=${encodeURIComponent(sessionToken)}`;
     const res = await fetch(url);
     if (!res.ok) {
       throw new Error('session unavailable');
     }
     const session = await res.json();
+    debugMetric('session-loaded', {
+      fetchMs: elapsedMs(sessionFetchStartedAt),
+      listId: session.listId || ''
+    });
     await applySessionResponse(session);
     connectSocket();
   } catch (error) {
@@ -564,6 +613,7 @@ async function initializeSession() {
 
 async function restoreList(code) {
   try {
+    sessionFetchStartedAt = performance.now();
     const res = await fetch('/restore', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -579,6 +629,10 @@ async function restoreList(code) {
       restoreCodeInput.value = '';
     }
     clearJoinCodeFromUrl();
+    debugMetric('restore-loaded', {
+      fetchMs: elapsedMs(sessionFetchStartedAt),
+      shareCode: code
+    });
   } catch (error) {
     console.warn('Failed to restore list', error);
     alert('Unable to restore the list. Check the code and try again.');
@@ -709,6 +763,7 @@ async function joinList(listId) {
   const code = (listId || '').trim();
   if (!code) return;
   try {
+    sessionFetchStartedAt = performance.now();
     const res = await fetch('/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -723,6 +778,10 @@ async function joinList(listId) {
     if (restoreCodeInput) {
       restoreCodeInput.value = '';
     }
+    debugMetric('join-loaded', {
+      fetchMs: elapsedMs(sessionFetchStartedAt),
+      shareCode: code
+    });
   } catch (error) {
     if (error instanceof Error && error.message === 'join failed') {
       await restoreList(code.toUpperCase());
@@ -820,6 +879,7 @@ function resetSocketState() {
   pendingSync = false;
   syncState = Automerge.initSyncState();
   updatePresence(0);
+  clearHeartbeatWatchdog();
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout);
     reconnectTimeout = null;
@@ -865,6 +925,10 @@ function handleControlMessage(raw) {
     const message = JSON.parse(raw);
     if (message?.type === 'presence') {
       updatePresence(message.connected);
+      return;
+    }
+    if (message?.type === 'heartbeat') {
+      markHeartbeatSeen(message.ts);
     }
   } catch (error) {
     // Ignore non-control text messages.
@@ -878,6 +942,38 @@ function updatePresence(connected) {
     presenceIndicator.classList.toggle('hidden', connectedPeers <= 0);
   }
   updatePresenceTooltip();
+}
+
+function markHeartbeatSeen(timestamp = Date.now()) {
+  lastHeartbeatAt = timestamp;
+  scheduleHeartbeatWatchdog();
+}
+
+function scheduleHeartbeatWatchdog() {
+  clearHeartbeatWatchdog();
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  heartbeatTimeout = setTimeout(() => {
+    heartbeatTimeout = null;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const age = Date.now() - lastHeartbeatAt;
+    if (age >= 25000) {
+      debugMetric('ws-heartbeat-stale', { ageMs: age });
+      setStatus('warn');
+      try {
+        ws.close();
+      } catch (error) {
+        console.warn('Failed to close stale websocket', error);
+      }
+      return;
+    }
+    scheduleHeartbeatWatchdog();
+  }, 26000);
+}
+
+function clearHeartbeatWatchdog() {
+  if (!heartbeatTimeout) return;
+  clearTimeout(heartbeatTimeout);
+  heartbeatTimeout = null;
 }
 
 function loadStoredDocument(listId) {

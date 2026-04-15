@@ -20,7 +20,9 @@ loadEnvFile(path.join(BOOT_DATA_DIR, '.env'));
 // - PERSIST_DEBOUNCE_MS / PERSIST_MAX_DELAY_MS reduce SQLite write churn.
 // - BROADCAST_DEBOUNCE_MS batches websocket fanout during bursts.
 // - COMPACT_IDLE_DELAY_MS delays doc compaction until the list has been idle.
+// - HEARTBEAT_MS sends a tiny websocket heartbeat to detect stale connections.
 // - SHARE_CODE_LENGTH / SHARE_CODE_ALPHABET control restore code generation.
+// - DEBUG_METRICS enables lightweight client-side connection timing logs.
 const PORT = readEnvInt('PORT', 3000);
 const DATA_DIR = process.env.DATA_DIR ? path.resolve(__dirname, process.env.DATA_DIR) : DEFAULT_DATA_DIR;
 const DB_FILE = process.env.DB_FILE ? path.resolve(__dirname, process.env.DB_FILE) : path.join(DATA_DIR, 'handl.db');
@@ -31,8 +33,10 @@ const PERSIST_DEBOUNCE_MS = readEnvInt('PERSIST_DEBOUNCE_MS', 750);
 const PERSIST_MAX_DELAY_MS = readEnvInt('PERSIST_MAX_DELAY_MS', 30 * 1000);
 const BROADCAST_DEBOUNCE_MS = readEnvInt('BROADCAST_DEBOUNCE_MS', 50);
 const COMPACT_IDLE_DELAY_MS = readEnvInt('COMPACT_IDLE_DELAY_MS', 2 * 60 * 1000);
+const HEARTBEAT_MS = readEnvInt('HEARTBEAT_MS', 15000);
 const SHARE_CODE_ALPHABET = process.env.SHARE_CODE_ALPHABET || 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SHARE_CODE_LENGTH = readEnvInt('SHARE_CODE_LENGTH', 8);
+const DEBUG_METRICS = readEnvBool('DEBUG_METRICS', false);
 
 const THEMES = JSON.parse(readFileSync(path.join(__dirname, 'themes.json'), 'utf8'));
 const TRANSLATIONS = JSON.parse(readFileSync(path.join(__dirname, 'translations.json'), 'utf8'));
@@ -69,6 +73,7 @@ const broadcastTimers = new Map();
 const compactTimers = new Map();
 
 ensureListSchema();
+startHeartbeatLoop();
 
 app.get('/session', (req, res) => {
   const providedToken = getString(req.query.token);
@@ -108,7 +113,7 @@ app.post('/join', (req, res) => {
 
 app.get('/themes.json', (req, res) => res.json(THEMES));
 app.get('/translations.json', (req, res) => res.json(TRANSLATIONS));
-app.get('/config.json', (req, res) => res.json({ title: 'Handl' }));
+app.get('/config.json', (req, res) => res.json({ title: 'Handl', debugMetrics: DEBUG_METRICS }));
 app.use('/vendor/automerge', express.static(AUTOMERGE_MJS_DIR, { maxAge: 0 }));
 app.use(express.static(PUBLIC_DIR, { maxAge: 0 }));
 
@@ -437,6 +442,17 @@ function broadcastPresence(listId) {
   }
 }
 
+function broadcastHeartbeat(listId) {
+  const clients = listClients.get(listId);
+  if (!clients || clients.size === 0) return;
+  const payload = JSON.stringify({ type: 'heartbeat', ts: Date.now() });
+  for (const client of clients) {
+    if (client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(payload);
+    }
+  }
+}
+
 function flushListRecord(listId, { compact = false, evict = false } = {}) {
   const record = loadListRecord(listId);
   if (!record) return false;
@@ -520,6 +536,14 @@ function startPruneLoop() {
   }, 60 * 60 * 1000);
 }
 
+function startHeartbeatLoop() {
+  setInterval(() => {
+    for (const listId of listClients.keys()) {
+      broadcastHeartbeat(listId);
+    }
+  }, HEARTBEAT_MS);
+}
+
 function getString(value) {
   if (!value) return null;
   return value.toString();
@@ -530,6 +554,12 @@ function readEnvInt(name, fallback) {
   if (raw == null || raw === '') return fallback;
   const parsed = Number.parseInt(raw, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function readEnvBool(name, fallback) {
+  const raw = process.env[name];
+  if (raw == null || raw === '') return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(raw.toString().trim().toLowerCase());
 }
 
 function loadEnvFile(filePath) {
