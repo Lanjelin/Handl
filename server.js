@@ -9,8 +9,10 @@ import {randomBytes, randomUUID} from 'crypto';
 import * as Automerge from '@automerge/automerge';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DEFAULT_DATA_DIR = path.join(__dirname, 'data');
+const BOOT_DATA_DIR = process.env.DATA_DIR ? path.resolve(__dirname, process.env.DATA_DIR) : DEFAULT_DATA_DIR;
 
-loadEnvFile(path.join(__dirname, '.env'));
+loadEnvFile(path.join(BOOT_DATA_DIR, '.env'));
 
 // Runtime tuning knobs:
 // - PORT / DATA_DIR / DB_FILE / PUBLIC_DIR control process binding and storage paths.
@@ -20,7 +22,7 @@ loadEnvFile(path.join(__dirname, '.env'));
 // - COMPACT_IDLE_DELAY_MS delays doc compaction until the list has been idle.
 // - SHARE_CODE_LENGTH / SHARE_CODE_ALPHABET control restore code generation.
 const PORT = readEnvInt('PORT', 3000);
-const DATA_DIR = process.env.DATA_DIR ? path.resolve(__dirname, process.env.DATA_DIR) : path.join(__dirname, 'data');
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(__dirname, process.env.DATA_DIR) : DEFAULT_DATA_DIR;
 const DB_FILE = process.env.DB_FILE ? path.resolve(__dirname, process.env.DB_FILE) : path.join(DATA_DIR, 'handl.db');
 const PUBLIC_DIR = process.env.PUBLIC_DIR ? path.resolve(__dirname, process.env.PUBLIC_DIR) : path.join(__dirname, 'public');
 const AUTOMERGE_MJS_DIR = path.join(__dirname, 'node_modules/@automerge/automerge/dist/mjs');

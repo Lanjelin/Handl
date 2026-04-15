@@ -71,6 +71,8 @@ The compose setup mirrors the docker run command and maps `./data` into `/app/da
 
 ## Environment variables
 
+Put these in `./data/.env` when running from source or mounting a container volume.
+
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | HTTP port where Handl listens | `3000` |
