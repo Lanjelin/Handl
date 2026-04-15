@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'handl.db');
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const AUTOMERGE_BUNDLE = path.join(__dirname, 'node_modules/@automerge/automerge/dist/iife/iife.js');
+const AUTOMERGE_MJS_DIR = path.join(__dirname, 'node_modules/@automerge/automerge/dist/mjs');
 const PRUNE_AFTER_MS = 180 * 24 * 60 * 60 * 1000;
 const SHARE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SHARE_CODE_LENGTH = 8;
@@ -84,7 +84,7 @@ app.post('/restore', (req, res) => {
 app.get('/themes.json', (req, res) => res.json(THEMES));
 app.get('/translations.json', (req, res) => res.json(TRANSLATIONS));
 app.get('/config.json', (req, res) => res.json({ title: 'Handl' }));
-app.get('/automerge.js', (req, res) => res.type('application/javascript').sendFile(AUTOMERGE_BUNDLE));
+app.use('/vendor/automerge', express.static(AUTOMERGE_MJS_DIR, { maxAge: 0 }));
 app.use(express.static(PUBLIC_DIR, { maxAge: 0 }));
 
 const server = createServer(app);

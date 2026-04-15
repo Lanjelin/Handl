@@ -1,5 +1,13 @@
-const CACHE_NAME = 'handl-shell-v3';
-const ASSETS = ['/', '/index.html', '/style.css', '/main.js', '/manifest.json', '/icon.svg', '/automerge.js'];
+const CACHE_NAME = 'handl-shell-v4';
+const ASSETS = [
+  '/',
+  '/index.html',
+  '/style.css',
+  '/main.js',
+  '/automerge.js',
+  '/manifest.json',
+  '/icon.svg'
+];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -30,7 +38,8 @@ self.addEventListener('fetch', (event) => {
     url.pathname === '/main.js' ||
     url.pathname === '/style.css' ||
     url.pathname === '/manifest.json' ||
-    url.pathname === '/automerge.js';
+    url.pathname === '/automerge.js' ||
+    url.pathname.startsWith('/vendor/automerge/');
   if (isShellAsset) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))

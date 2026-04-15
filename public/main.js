@@ -1,8 +1,4 @@
-const Automerge = globalThis.Automerge;
-
-if (!Automerge) {
-  throw new Error('Automerge bundle not loaded');
-}
+import Automerge from '/automerge.js';
 
 const editor = document.getElementById('text-editor');
 const checklist = document.getElementById('checklist');
@@ -141,7 +137,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await fetchThemeCatalog();
   await fetchTranslationCatalog();
   await initializeSession();
-  connectSocket();
   fetchConfig();
 });
 
@@ -504,6 +499,9 @@ function setStatus(variant = 'idle') {
 
 function connectSocket() {
   if (!sessionToken) return;
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
   const query = `?token=${encodeURIComponent(sessionToken)}`;
   ws = new WebSocket(`${scheme}://${location.host}${query}`);
@@ -531,14 +529,16 @@ function connectSocket() {
 
 async function initializeSession() {
   try {
-    const storedToken = loadSessionToken();
-    const url = storedToken ? `/session?token=${encodeURIComponent(storedToken)}` : '/session';
+    sessionToken = loadSessionToken() || crypto.randomUUID?.() || Math.random().toString(36).slice(2);
+    persistSessionToken(sessionToken);
+    const url = `/session?token=${encodeURIComponent(sessionToken)}`;
     const res = await fetch(url);
     if (!res.ok) {
       throw new Error('session unavailable');
     }
     const session = await res.json();
     await applySessionResponse(session);
+    connectSocket();
   } catch (error) {
     console.warn('Failed to initialize session', error);
     setStatus('warn');
@@ -591,6 +591,7 @@ async function applySessionResponse(session) {
 
   setDoc(doc, { sync: false, persist: false });
   schedulePersistDocument();
+  connectSocket();
 }
 
 function loadDocFromSession(session) {
