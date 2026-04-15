@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@automerge/automerge": "^3.2.5",
-    "automerge": "^0.14.2",
     "better-sqlite3": "^12.9.0",
     "express": "^4.20.2",
     "ws": "^8.13.0"
