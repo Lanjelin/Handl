@@ -3,20 +3,34 @@ import {fileURLToPath} from 'url';
 import express from 'express';
 import {createServer} from 'http';
 import {WebSocketServer, WebSocket} from 'ws';
-import {mkdirSync, readFileSync} from 'fs';
+import {existsSync, mkdirSync, readFileSync} from 'fs';
 import Database from 'better-sqlite3';
 import {randomBytes, randomUUID} from 'crypto';
 import * as Automerge from '@automerge/automerge';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PORT = process.env.PORT || 3000;
-const DATA_DIR = path.join(__dirname, 'data');
-const DB_FILE = path.join(DATA_DIR, 'handl.db');
-const PUBLIC_DIR = path.join(__dirname, 'public');
+
+loadEnvFile(path.join(__dirname, '.env'));
+
+// Runtime tuning knobs:
+// - PORT / DATA_DIR / DB_FILE / PUBLIC_DIR control process binding and storage paths.
+// - PRUNE_AFTER_MS evicts very old inactive lists.
+// - PERSIST_DEBOUNCE_MS / PERSIST_MAX_DELAY_MS reduce SQLite write churn.
+// - BROADCAST_DEBOUNCE_MS batches websocket fanout during bursts.
+// - COMPACT_IDLE_DELAY_MS delays doc compaction until the list has been idle.
+// - SHARE_CODE_LENGTH / SHARE_CODE_ALPHABET control restore code generation.
+const PORT = readEnvInt('PORT', 3000);
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(__dirname, process.env.DATA_DIR) : path.join(__dirname, 'data');
+const DB_FILE = process.env.DB_FILE ? path.resolve(__dirname, process.env.DB_FILE) : path.join(DATA_DIR, 'handl.db');
+const PUBLIC_DIR = process.env.PUBLIC_DIR ? path.resolve(__dirname, process.env.PUBLIC_DIR) : path.join(__dirname, 'public');
 const AUTOMERGE_MJS_DIR = path.join(__dirname, 'node_modules/@automerge/automerge/dist/mjs');
-const PRUNE_AFTER_MS = 180 * 24 * 60 * 60 * 1000;
-const SHARE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const SHARE_CODE_LENGTH = 8;
+const PRUNE_AFTER_MS = readEnvInt('PRUNE_AFTER_MS', 180 * 24 * 60 * 60 * 1000);
+const PERSIST_DEBOUNCE_MS = readEnvInt('PERSIST_DEBOUNCE_MS', 750);
+const PERSIST_MAX_DELAY_MS = readEnvInt('PERSIST_MAX_DELAY_MS', 30 * 1000);
+const BROADCAST_DEBOUNCE_MS = readEnvInt('BROADCAST_DEBOUNCE_MS', 50);
+const COMPACT_IDLE_DELAY_MS = readEnvInt('COMPACT_IDLE_DELAY_MS', 2 * 60 * 1000);
+const SHARE_CODE_ALPHABET = process.env.SHARE_CODE_ALPHABET || 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const SHARE_CODE_LENGTH = readEnvInt('SHARE_CODE_LENGTH', 8);
 
 const THEMES = JSON.parse(readFileSync(path.join(__dirname, 'themes.json'), 'utf8'));
 const TRANSLATIONS = JSON.parse(readFileSync(path.join(__dirname, 'translations.json'), 'utf8'));
@@ -55,10 +69,6 @@ const persistTimers = new Map();
 const forcePersistTimers = new Map();
 const broadcastTimers = new Map();
 const compactTimers = new Map();
-const PERSIST_DEBOUNCE_MS = 750;
-const PERSIST_MAX_DELAY_MS = 30 * 1000;
-const BROADCAST_DEBOUNCE_MS = 50;
-const COMPACT_IDLE_DELAY_MS = 2 * 60 * 1000;
 
 ensureListSchema();
 
@@ -482,6 +492,35 @@ function startPruneLoop() {
 function getString(value) {
   if (!value) return null;
   return value.toString();
+}
+
+function readEnvInt(name, fallback) {
+  const raw = process.env[name];
+  if (raw == null || raw === '') return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function loadEnvFile(filePath) {
+  if (!existsSync(filePath)) return;
+  try {
+    const content = readFileSync(filePath, 'utf8');
+    for (const line of content.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const equalsIndex = trimmed.indexOf('=');
+      if (equalsIndex < 0) continue;
+      const key = trimmed.slice(0, equalsIndex).trim();
+      if (!key || process.env[key] != null) continue;
+      let value = trimmed.slice(equalsIndex + 1).trim();
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      process.env[key] = value;
+    }
+  } catch (error) {
+    console.warn('Failed to load .env file', error);
+  }
 }
 
 function formatShareCode(code) {
