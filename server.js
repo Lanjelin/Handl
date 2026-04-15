@@ -34,7 +34,6 @@ db.exec(`
     id TEXT PRIMARY KEY,
     state TEXT NOT NULL,
     doc BLOB,
-    revision INTEGER NOT NULL,
     share_code TEXT NOT NULL UNIQUE,
     last_access INTEGER NOT NULL
   );
@@ -167,11 +166,10 @@ function createList() {
   const doc = createInitialDoc();
   const state = snapshotFromDoc(doc);
   const now = Date.now();
-  db.prepare('INSERT INTO lists (id, state, doc, revision, share_code, last_access) VALUES (?, ?, ?, ?, ?, ?)').run(
+  db.prepare('INSERT INTO lists (id, state, doc, share_code, last_access) VALUES (?, ?, ?, ?, ?)').run(
     id,
     JSON.stringify(state),
     Buffer.from(Automerge.save(doc)),
-    0,
     shareCode,
     now
   );
@@ -259,8 +257,8 @@ function persistListRecord(listId, record) {
   const now = Date.now();
   const state = snapshotFromDoc(record.doc);
   db
-    .prepare('UPDATE lists SET state = ?, doc = ?, revision = ?, last_access = ? WHERE id = ?')
-    .run(JSON.stringify(state), Buffer.from(Automerge.save(record.doc)), 0, now, listId);
+    .prepare('UPDATE lists SET state = ?, doc = ?, last_access = ? WHERE id = ?')
+    .run(JSON.stringify(state), Buffer.from(Automerge.save(record.doc)), now, listId);
   record.state = state;
   stateCache.set(listId, record);
 }
