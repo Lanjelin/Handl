@@ -35,10 +35,6 @@ const SHARE_CODE_LENGTH = readEnvInt('SHARE_CODE_LENGTH', 8);
 const THEMES = JSON.parse(readFileSync(path.join(__dirname, 'themes.json'), 'utf8'));
 const TRANSLATIONS = JSON.parse(readFileSync(path.join(__dirname, 'translations.json'), 'utf8'));
 
-const defaultSnapshot = {
-  items: []
-};
-
 mkdirSync(DATA_DIR, { recursive: true });
 const db = new Database(DB_FILE);
 db.pragma('journal_mode = WAL');
@@ -161,7 +157,7 @@ function restoreWithCode(code, token) {
 
 function createSession(existingToken) {
   const token = ensureToken(existingToken);
-  const { listId, shareCode, state } = createList();
+  const { listId, shareCode } = createList();
   assignToken(token, listId);
   return { listId, shareCode, record: loadListRecord(listId), token };
 }
@@ -193,7 +189,7 @@ function createList() {
     now
   );
   stateCache.set(id, { doc, state, dirty: false });
-  return { listId: id, shareCode, state };
+  return { listId: id, shareCode };
 }
 
 function generateShareCode() {

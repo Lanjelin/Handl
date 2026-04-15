@@ -35,9 +35,9 @@ services:
     volumes:
       - ./data:/app/data
     restart: unless-stopped
+```
 
 Set the `PORT` environment variable in the compose service if you need a different HTTP port (defaults to `3000`).
-```
 
 Run with:
 
@@ -74,6 +74,16 @@ The compose setup mirrors the docker run command and maps `./data` into `/app/da
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | HTTP port where Handl listens | `3000` |
+| `DATA_DIR` | Base directory for local app data | `./data` |
+| `DB_FILE` | SQLite database path | `./data/handl.db` |
+| `PUBLIC_DIR` | Static asset directory | `./public` |
+| `PRUNE_AFTER_MS` | Delete inactive lists after this long | `15552000000` |
+| `PERSIST_DEBOUNCE_MS` | Delay before writing active edits to SQLite | `750` |
+| `PERSIST_MAX_DELAY_MS` | Maximum time before forcing a persistence flush | `30000` |
+| `BROADCAST_DEBOUNCE_MS` | Batch websocket fanout during bursts | `50` |
+| `COMPACT_IDLE_DELAY_MS` | Delay before compacting an idle list | `120000` |
+| `SHARE_CODE_LENGTH` | Length of generated restore codes | `8` |
+| `SHARE_CODE_ALPHABET` | Alphabet used for restore codes | `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` |
 
 ## Notes
 
