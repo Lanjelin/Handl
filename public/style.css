@@ -472,6 +472,61 @@ button.danger {
   font-size: 18px;
 }
 
+.copy-share-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.copy-feedback {
+  position: absolute;
+  inset: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.55rem;
+  border-radius: 0.9rem;
+  background: var(--status-online-bg);
+  background:
+    linear-gradient(180deg, var(--status-online-bg), color-mix(in srgb, var(--status-online-bg) 70%, transparent));
+  border: 1px solid var(--status-online-border);
+  color: var(--status-online-fg);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow:
+    0 10px 22px rgba(2, 6, 23, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transform: translateY(1px) scale(0.92);
+  opacity: 0;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  pointer-events: none;
+  z-index: 2;
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+}
+
+.copy-feedback:not(.hidden) {
+  opacity: 1;
+  transform: translateY(-1px) scale(1);
+}
+
+.copy-feedback::before {
+  content: 'Copied';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.08;
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
 .share-native-button {
   flex: 0 0 auto !important;
   width: 2.4rem;
@@ -583,5 +638,9 @@ button.danger {
 
   .presence-indicator {
     justify-content: center;
+  }
+
+  .copy-feedback {
+    transform: translateY(2px) scale(0.9);
   }
 }

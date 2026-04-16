@@ -92,7 +92,8 @@
       "landingInviteTitle": "Join list {code}?",
       "landingInviteBody": "Joining will remove you from your current list.",
       "landingInviteJoin": "Join",
-      "landingInviteCancel": "Cancel"
+      "landingInviteCancel": "Cancel",
+      "copyFeedback": "Copied"
     },
     "no": {
       "settingsTitle": "Innstillinger",
@@ -129,7 +130,8 @@
       "landingInviteTitle": "Bli med i listen {code}?",
       "landingInviteBody": "Å bli med vil fjerne deg fra den nåværende listen.",
       "landingInviteJoin": "Bli med",
-      "landingInviteCancel": "Avbryt"
+      "landingInviteCancel": "Avbryt",
+      "copyFeedback": "Kopiert"
     },
     "es": {
       "settingsTitle": "Configuración",
@@ -166,7 +168,8 @@
       "landingInviteTitle": "¿Unirte a la lista {code}?",
       "landingInviteBody": "Unirte te quitará de tu lista actual.",
       "landingInviteJoin": "Unirse",
-      "landingInviteCancel": "Cancelar"
+      "landingInviteCancel": "Cancelar",
+      "copyFeedback": "Copiado"
     },
     "sv": {
       "settingsTitle": "Inställningar",
@@ -203,7 +206,8 @@
       "landingInviteTitle": "Gå med i listan {code}?",
       "landingInviteBody": "Att gå med tar bort dig från din nuvarande lista.",
       "landingInviteJoin": "Gå med",
-      "landingInviteCancel": "Avbryt"
+      "landingInviteCancel": "Avbryt",
+      "copyFeedback": "Kopierat"
     },
     "da": {
       "settingsTitle": "Indstillinger",
@@ -240,7 +244,8 @@
       "landingInviteTitle": "Deltag i listen {code}?",
       "landingInviteBody": "At deltage fjerner dig fra din nuværende liste.",
       "landingInviteJoin": "Deltag",
-      "landingInviteCancel": "Annuller"
+      "landingInviteCancel": "Annuller",
+      "copyFeedback": "Kopieret"
     },
     "fi": {
       "settingsTitle": "Asetukset",
@@ -277,7 +282,8 @@
       "landingInviteTitle": "Liity listaan {code}?",
       "landingInviteBody": "Liittyminen poistaa sinut nykyisestä listastasi.",
       "landingInviteJoin": "Liity",
-      "landingInviteCancel": "Peruuta"
+      "landingInviteCancel": "Peruuta",
+      "copyFeedback": "Kopioitu"
     },
     "de": {
       "settingsTitle": "Einstellungen",
@@ -314,7 +320,8 @@
       "landingInviteTitle": "Liste {code} beitreten?",
       "landingInviteBody": "Dadurch wirst du von deiner aktuellen Liste entfernt.",
       "landingInviteJoin": "Beitreten",
-      "landingInviteCancel": "Abbrechen"
+      "landingInviteCancel": "Abbrechen",
+      "copyFeedback": "Kopiert"
     },
     "nl": {
       "settingsTitle": "Instellingen",
@@ -351,7 +358,8 @@
       "landingInviteTitle": "Lid worden van lijst {code}?",
       "landingInviteBody": "Hiermee word je van je huidige lijst verwijderd.",
       "landingInviteJoin": "Deelnemen",
-      "landingInviteCancel": "Annuleren"
+      "landingInviteCancel": "Annuleren",
+      "copyFeedback": "Gekopieerd"
     },
     "fr": {
       "settingsTitle": "Paramètres",
@@ -388,7 +396,8 @@
       "landingInviteTitle": "Rejoindre la liste {code} ?",
       "landingInviteBody": "Cela vous retirera de votre liste actuelle.",
       "landingInviteJoin": "Rejoindre",
-      "landingInviteCancel": "Annuler"
+      "landingInviteCancel": "Annuler",
+      "copyFeedback": "Copié"
     },
     "pt": {
       "settingsTitle": "Configurações",
@@ -425,7 +434,8 @@
       "landingInviteTitle": "Entrar na lista {code}?",
       "landingInviteBody": "Isso o(a) removerá da sua lista atual.",
       "landingInviteJoin": "Entrar",
-      "landingInviteCancel": "Cancelar"
+      "landingInviteCancel": "Cancelar",
+      "copyFeedback": "Copiado"
     },
     "it": {
       "settingsTitle": "Impostazioni",
@@ -462,7 +472,8 @@
       "landingInviteTitle": "Unirti alla lista {code}?",
       "landingInviteBody": "Questo ti rimuoverà dalla tua lista attuale.",
       "landingInviteJoin": "Unisciti",
-      "landingInviteCancel": "Annulla"
+      "landingInviteCancel": "Annulla",
+      "copyFeedback": "Copiato"
     }
   }
 }

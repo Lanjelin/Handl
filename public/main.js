@@ -22,6 +22,7 @@ const copyShareCodeButton = document.getElementById('copy-share-code-button');
 const shareListButton = document.getElementById('share-list-button');
 const restoreCodeInput = document.getElementById('restore-code-input');
 const restoreCodeButton = document.getElementById('restore-code-button');
+const copyFeedback = document.getElementById('copy-feedback');
 const landingScreen = document.getElementById('landing-screen');
 const landingCreateButton = document.getElementById('landing-create-button');
 const landingJoinButton = document.getElementById('landing-join-button');
@@ -88,7 +89,8 @@ const FALLBACK_TRANSLATIONS = {
     landingInviteTitle: 'Join list {code}?',
     landingInviteBody: 'Joining will remove you from your current list.',
     landingInviteJoin: 'Join',
-    landingInviteCancel: 'Cancel'
+    landingInviteCancel: 'Cancel',
+    copyFeedback: 'Copied'
   }
 };
 
@@ -121,6 +123,7 @@ let currentStatusVariant = 'idle';
 let connectedPeers = 0;
 let landingMode = 'welcome';
 let pendingJoinCode = '';
+let copyFeedbackTimeout = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   editor.addEventListener('input', handleEditorInput);
@@ -878,6 +881,7 @@ async function copyListIdToClipboard() {
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(value);
+      showCopyFeedback();
       return;
     }
 
@@ -890,9 +894,21 @@ async function copyListIdToClipboard() {
     fallback.select();
     document.execCommand('copy');
     document.body.removeChild(fallback);
+    showCopyFeedback();
   } catch (error) {
     console.warn('Failed to copy list ID', error);
   }
+}
+
+function showCopyFeedback() {
+  if (!copyFeedback) return;
+  const locale = getLocale();
+  copyFeedback.textContent = locale.copyFeedback;
+  copyFeedback.classList.remove('hidden');
+  clearTimeout(copyFeedbackTimeout);
+  copyFeedbackTimeout = setTimeout(() => {
+    copyFeedback.classList.add('hidden');
+  }, 1400);
 }
 
 async function shareListLink() {
@@ -1224,6 +1240,7 @@ function applyTranslations() {
   const landingInviteJoinLabel = document.querySelector('[data-i18n="landingInviteJoin"]');
   const landingInviteCancelLabel = document.querySelector('[data-i18n="landingInviteCancel"]');
   const landingInviteBody = document.querySelector('[data-i18n="landingInviteBody"]');
+  const copyFeedbackLabel = document.querySelector('[data-i18n="copyFeedback"]');
 
   if (header) header.textContent = locale.settingsTitle;
   if (sortLabel) sortLabel.textContent = locale.sortChecked;
@@ -1245,6 +1262,7 @@ function applyTranslations() {
   if (landingInviteJoinLabel) landingInviteJoinLabel.textContent = locale.landingInviteJoin;
   if (landingInviteCancelLabel) landingInviteCancelLabel.textContent = locale.landingInviteCancel;
   if (landingInviteBody) landingInviteBody.textContent = locale.landingInviteBody;
+  if (copyFeedbackLabel) copyFeedbackLabel.textContent = locale.copyFeedback;
   if (landingShareCodeInput) {
     landingShareCodeInput.placeholder = locale.landingSharePlaceholder;
   }

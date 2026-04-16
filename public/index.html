@@ -68,6 +68,7 @@
               setText('[data-i18n="landingInviteJoin"]', locale.landingInviteJoin);
               setText('[data-i18n="landingInviteCancel"]', locale.landingInviteCancel);
               setText('[data-i18n="landingInviteBody"]', locale.landingInviteBody);
+              setText('[data-i18n="copyFeedback"]', locale.copyFeedback);
 
               const settingsButton = document.getElementById('open-settings');
               if (settingsButton && locale.settingsTooltip) {
@@ -241,9 +242,12 @@ Bread"
             <span data-i18n="listIdLabel">List ID</span>
             <div class="share-actions">
               <input id="settings-share-code" class="share-code-field" readonly />
-              <button id="copy-share-code-button" class="ghost icon-button share-copy-button" type="button" aria-label="Copy list ID">
-                <span class="material-symbols-outlined">content_copy</span>
-              </button>
+              <div class="copy-share-wrap">
+                <button id="copy-share-code-button" class="ghost icon-button share-copy-button" type="button" aria-label="Copy list ID">
+                  <span class="material-symbols-outlined">content_copy</span>
+                </button>
+                <div id="copy-feedback" class="copy-feedback hidden" role="status" aria-live="polite" aria-atomic="true" data-i18n="copyFeedback">Copied</div>
+              </div>
               <button id="share-list-button" class="ghost icon-button share-native-button hidden" type="button" aria-label="Share list">
                 <span class="material-symbols-outlined">share</span>
               </button>
