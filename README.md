@@ -99,4 +99,4 @@ Put these in `./data/.env` when running from source or mounting a container volu
 - If you run from npm, you can still reuse the Docker volume contents by pointing your local `data/` directory at the same path.
 - `/metrics` exposes a small operational snapshot: cached list count, active websocket clients, timer counts, and recent request totals within `METRICS_WINDOW_MS`.
 - The mobile share button uses the native share sheet on supported devices and shares `/?join=<shareCode>`.
-- The browser cache stores only a plain JSON snapshot of the current list plus local preferences; it no longer keeps a full Automerge blob locally.
+- The browser cache stores only a plain JSON snapshot of the current list; theme/language/checkbox-sort preferences are kept locally in the browser and persist across lists. It no longer keeps a full Automerge blob locally.

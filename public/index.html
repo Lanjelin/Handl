@@ -16,8 +16,12 @@
         const LOCAL_UI_PREFIX = 'handl-ui-cache';
         try {
           const activeListId = localStorage.getItem('handl-active-list-id') || '';
-          const settingsRaw = activeListId ? localStorage.getItem(`${LOCAL_SETTINGS_PREFIX}:${activeListId}`) : null;
-          const uiRaw = activeListId ? localStorage.getItem(`${LOCAL_UI_PREFIX}:${activeListId}`) : null;
+          const settingsRaw = localStorage.getItem(LOCAL_SETTINGS_PREFIX) || (
+            activeListId ? localStorage.getItem(`${LOCAL_SETTINGS_PREFIX}:${activeListId}`) : null
+          );
+          const uiRaw = localStorage.getItem(LOCAL_UI_PREFIX) || (
+            activeListId ? localStorage.getItem(`${LOCAL_UI_PREFIX}:${activeListId}`) : null
+          );
           const settings = settingsRaw ? JSON.parse(settingsRaw) : {};
           const ui = uiRaw ? JSON.parse(uiRaw) : {};
           const theme = ui.theme || {};

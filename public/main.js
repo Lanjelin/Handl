@@ -732,9 +732,6 @@ async function applySessionResponse(session) {
   shareCodeValue = session.shareCode ?? '';
   updateShareCodeDisplay();
   persistActiveListId();
-
-  const localSettings = loadLocalSettings(activeListId);
-  settings = { ...DEFAULT_SETTINGS, ...(localSettings || {}) };
   persistLocalSettings();
 
   const cached = loadStoredDocument(activeListId);
@@ -1337,12 +1334,23 @@ function updateModeUI() {
   }
 }
 
-function loadLocalSettings(listId) {
-  if (typeof localStorage === 'undefined' || !listId) return null;
+function loadLocalSettings() {
+  if (typeof localStorage === 'undefined') return null;
   try {
-    const key = localSettingsKey(listId);
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
+    const raw = localStorage.getItem(localSettingsKey());
+    if (raw) return parseSettingsPayload(raw);
+    const legacyKey = activeListId ? `${LOCAL_SETTINGS_PREFIX}:${activeListId}` : '';
+    if (!legacyKey) return null;
+    const legacyRaw = localStorage.getItem(legacyKey);
+    return legacyRaw ? parseSettingsPayload(legacyRaw) : null;
+  } catch (error) {
+    console.warn('Failed to load local settings', error);
+    return null;
+  }
+}
+
+function parseSettingsPayload(raw) {
+  try {
     const parsed = JSON.parse(raw);
     const result = {};
     if (typeof parsed.colorScheme === 'string') result.colorScheme = parsed.colorScheme;
@@ -1350,7 +1358,7 @@ function loadLocalSettings(listId) {
     if (typeof parsed.sortChecked === 'boolean') result.sortChecked = parsed.sortChecked;
     return Object.keys(result).length ? result : null;
   } catch (error) {
-    console.warn('Failed to load local settings', error);
+    console.warn('Failed to parse local settings', error);
     return null;
   }
 }
@@ -1358,9 +1366,8 @@ function loadLocalSettings(listId) {
 function persistLocalSettings() {
   if (typeof localStorage === 'undefined') return;
   try {
-    if (!activeListId) return;
     localStorage.setItem(
-      localSettingsKey(activeListId),
+      localSettingsKey(),
       JSON.stringify({
         colorScheme: settings.colorScheme,
         language: settings.language,
@@ -1372,8 +1379,8 @@ function persistLocalSettings() {
   }
 }
 
-function localSettingsKey(listId) {
-  return `${LOCAL_SETTINGS_PREFIX}:${listId}`;
+function localSettingsKey() {
+  return LOCAL_SETTINGS_PREFIX;
 }
 
 function persistActiveListId() {
@@ -1386,12 +1393,12 @@ function persistActiveListId() {
 }
 
 function persistUiCache() {
-  if (typeof localStorage === 'undefined' || !activeListId) return;
+  if (typeof localStorage === 'undefined') return;
   try {
     const theme = themeCatalog[settings.colorScheme] ?? FALLBACK_THEME;
     const locale = translations[settings.language] ?? translations.en;
     localStorage.setItem(
-      `${LOCAL_UI_PREFIX}:${activeListId}`,
+      LOCAL_UI_PREFIX,
       JSON.stringify({
         colorScheme: settings.colorScheme,
         language: settings.language,
