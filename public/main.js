@@ -845,36 +845,7 @@ function updateNativeShareAvailability() {
 async function joinList(listId) {
   const code = (listId || '').trim();
   if (!code) return;
-  try {
-    sessionToken = ensureSessionToken();
-    sessionFetchStartedAt = performance.now();
-    const res = await fetch('/join', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, token: sessionToken })
-    });
-    if (!res.ok) throw new Error('join failed');
-    const session = await res.json();
-    await applySessionResponse(session);
-    if (settingsDialog.open) {
-      settingsDialog.close();
-    }
-    if (restoreCodeInput) {
-      restoreCodeInput.value = '';
-    }
-    hideLandingScreen();
-    debugMetric('join-loaded', {
-      fetchMs: elapsedMs(sessionFetchStartedAt),
-      shareCode: code
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'join failed') {
-      await restoreList(code.toUpperCase());
-      return;
-    }
-    console.warn('Failed to join list', error);
-    alert('Unable to join the list. Check the link and try again.');
-  }
+  await restoreList(code.toUpperCase());
 }
 
 function getJoinCodeFromUrl() {
