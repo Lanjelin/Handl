@@ -54,7 +54,13 @@
               setText('[data-i18n="languageLabel"]', locale.languageLabel);
               setText('[data-i18n="listIdLabel"]', locale.listIdLabel);
               setText('[data-i18n="joinListLabel"]', locale.joinListLabel);
-              setText('[data-i18n="joinButton"]', locale.joinButton);
+              document.querySelectorAll('[data-i18n="joinButton"]').forEach((element) => {
+                element.textContent = locale.joinButton;
+              });
+              setText('[data-i18n="landingTitle"]', locale.landingTitle);
+              setText('[data-i18n="landingBody"]', locale.landingBody);
+              setText('[data-i18n="landingCreateNew"]', locale.landingCreateNew);
+              setText('[data-i18n="landingJoinExisting"]', locale.landingJoinExisting);
 
               const settingsButton = document.getElementById('open-settings');
               if (settingsButton && locale.settingsTooltip) {
@@ -90,6 +96,11 @@
               if (restore && locale.listIdPlaceholder) {
                 restore.placeholder = locale.listIdPlaceholder;
               }
+
+              const landingShareCode = document.getElementById('landing-share-code');
+              if (landingShareCode && locale.landingSharePlaceholder) {
+                landingShareCode.placeholder = locale.landingSharePlaceholder;
+              }
             }, { once: true });
           }
 
@@ -112,6 +123,33 @@
     <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
   </head>
   <body>
+    <div id="landing-screen" class="landing-screen hidden" aria-hidden="true">
+      <section class="landing-card">
+        <div class="landing-copy">
+          <h1 data-i18n="landingTitle">Welcome to Handl</h1>
+          <p data-i18n="landingBody">Join an existing list or create a new one.</p>
+        </div>
+        <div class="landing-actions">
+          <button id="landing-create-button" type="button" data-i18n="landingCreateNew">Create new list</button>
+          <button id="landing-join-button" class="ghost" type="button" data-i18n="landingJoinExisting">
+            Join existing list
+          </button>
+        </div>
+        <div id="landing-join-form" class="landing-join-form hidden">
+          <input
+            id="landing-share-code"
+            class="share-code-field landing-share-code-field"
+            inputmode="text"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            placeholder="Share code"
+          />
+          <button id="landing-join-submit" class="ghost" type="button" data-i18n="joinButton">Join</button>
+        </div>
+      </section>
+    </div>
+
     <div class="app-shell">
       <section class="pane single-pane">
         <div class="pane-title mode-header">

@@ -83,7 +83,12 @@
       "presenceOthersViewing": "Other people are viewing the list",
       "copyListId": "Copy list ID",
       "shareList": "Share list",
-      "shareJoinTitle": "Join Handl list"
+      "shareJoinTitle": "Join Handl list",
+      "landingTitle": "Welcome to Handl",
+      "landingBody": "Join an existing list or create a new one.",
+      "landingJoinExisting": "Join existing list",
+      "landingCreateNew": "Create new list",
+      "landingSharePlaceholder": "Share code"
     },
     "no": {
       "settingsTitle": "Innstillinger",
@@ -111,7 +116,12 @@
       "presenceOthersViewing": "Andre ser på listen",
       "copyListId": "Kopier liste-ID",
       "shareList": "Del listen",
-      "shareJoinTitle": "Bli med i Handl-listen"
+      "shareJoinTitle": "Bli med i Handl-listen",
+      "landingTitle": "Velkommen til Handl",
+      "landingBody": "Bli med på en eksisterende liste eller opprett en ny.",
+      "landingJoinExisting": "Bli med på eksisterende liste",
+      "landingCreateNew": "Opprett ny liste",
+      "landingSharePlaceholder": "Delingskode"
     },
     "es": {
       "settingsTitle": "Configuración",
@@ -139,7 +149,12 @@
       "presenceOthersViewing": "Otras personas están viendo la lista",
       "copyListId": "Copiar ID de la lista",
       "shareList": "Compartir lista",
-      "shareJoinTitle": "Unirse a la lista de Handl"
+      "shareJoinTitle": "Unirse a la lista de Handl",
+      "landingTitle": "Bienvenido a Handl",
+      "landingBody": "Únete a una lista existente o crea una nueva.",
+      "landingJoinExisting": "Unirse a lista existente",
+      "landingCreateNew": "Crear nueva lista",
+      "landingSharePlaceholder": "Código para compartir"
     },
     "sv": {
       "settingsTitle": "Inställningar",
@@ -167,7 +182,12 @@
       "presenceOthersViewing": "Andra tittar på listan",
       "copyListId": "Kopiera list-ID",
       "shareList": "Dela listan",
-      "shareJoinTitle": "Gå med i Handl-listan"
+      "shareJoinTitle": "Gå med i Handl-listan",
+      "landingTitle": "Välkommen till Handl",
+      "landingBody": "Gå med i en befintlig lista eller skapa en ny.",
+      "landingJoinExisting": "Gå med i befintlig lista",
+      "landingCreateNew": "Skapa ny lista",
+      "landingSharePlaceholder": "Delningskod"
     },
     "da": {
       "settingsTitle": "Indstillinger",
@@ -195,7 +215,12 @@
       "presenceOthersViewing": "Andre ser på listen",
       "copyListId": "Kopiér liste-ID",
       "shareList": "Del listen",
-      "shareJoinTitle": "Deltag i Handl-listen"
+      "shareJoinTitle": "Deltag i Handl-listen",
+      "landingTitle": "Velkommen til Handl",
+      "landingBody": "Deltag i en eksisterende liste eller opret en ny.",
+      "landingJoinExisting": "Deltag i eksisterende liste",
+      "landingCreateNew": "Opret ny liste",
+      "landingSharePlaceholder": "Delingskode"
     },
     "fi": {
       "settingsTitle": "Asetukset",
@@ -223,7 +248,12 @@
       "presenceOthersViewing": "Muut katsovat listaa",
       "copyListId": "Kopioi lista-ID",
       "shareList": "Jaa lista",
-      "shareJoinTitle": "Liity Handl-listaan"
+      "shareJoinTitle": "Liity Handl-listaan",
+      "landingTitle": "Tervetuloa Handliin",
+      "landingBody": "Liity olemassa olevaan listaan tai luo uusi.",
+      "landingJoinExisting": "Liity olemassa olevaan listaan",
+      "landingCreateNew": "Luo uusi lista",
+      "landingSharePlaceholder": "Jakamiskoodi"
     },
     "de": {
       "settingsTitle": "Einstellungen",
@@ -251,7 +281,12 @@
       "presenceOthersViewing": "Andere sehen die Liste an",
       "copyListId": "Listen-ID kopieren",
       "shareList": "Liste teilen",
-      "shareJoinTitle": "Handl-Liste beitreten"
+      "shareJoinTitle": "Handl-Liste beitreten",
+      "landingTitle": "Willkommen bei Handl",
+      "landingBody": "Tritt einer bestehenden Liste bei oder erstelle eine neue.",
+      "landingJoinExisting": "Bestehender Liste beitreten",
+      "landingCreateNew": "Neue Liste erstellen",
+      "landingSharePlaceholder": "Freigabecode"
     },
     "nl": {
       "settingsTitle": "Instellingen",
@@ -279,7 +314,12 @@
       "presenceOthersViewing": "Andere bekijken de lijst",
       "copyListId": "Lijst-ID kopiëren",
       "shareList": "Lijst delen",
-      "shareJoinTitle": "De Handl-lijst openen"
+      "shareJoinTitle": "De Handl-lijst openen",
+      "landingTitle": "Welkom bij Handl",
+      "landingBody": "Doe mee met een bestaande lijst of maak een nieuwe.",
+      "landingJoinExisting": "Bestaande lijst openen",
+      "landingCreateNew": "Nieuwe lijst maken",
+      "landingSharePlaceholder": "Deelcode"
     },
     "fr": {
       "settingsTitle": "Paramètres",
@@ -307,7 +347,12 @@
       "presenceOthersViewing": "D'autres personnes regardent la liste",
       "copyListId": "Copier l’ID de la liste",
       "shareList": "Partager la liste",
-      "shareJoinTitle": "Rejoindre la liste Handl"
+      "shareJoinTitle": "Rejoindre la liste Handl",
+      "landingTitle": "Bienvenue sur Handl",
+      "landingBody": "Rejoignez une liste existante ou créez-en une nouvelle.",
+      "landingJoinExisting": "Rejoindre une liste",
+      "landingCreateNew": "Créer une nouvelle liste",
+      "landingSharePlaceholder": "Code de partage"
     },
     "pt": {
       "settingsTitle": "Configurações",
@@ -335,7 +380,12 @@
       "presenceOthersViewing": "Outras pessoas estão vendo a lista",
       "copyListId": "Copiar ID da lista",
       "shareList": "Partilhar lista",
-      "shareJoinTitle": "Entrar na lista Handl"
+      "shareJoinTitle": "Entrar na lista Handl",
+      "landingTitle": "Bem-vindo ao Handl",
+      "landingBody": "Entre em uma lista existente ou crie uma nova.",
+      "landingJoinExisting": "Entrar em lista existente",
+      "landingCreateNew": "Criar nova lista",
+      "landingSharePlaceholder": "Código de partilha"
     },
     "it": {
       "settingsTitle": "Impostazioni",
@@ -363,7 +413,12 @@
       "presenceOthersViewing": "Altre persone stanno guardando la lista",
       "copyListId": "Copia ID lista",
       "shareList": "Condividi lista",
-      "shareJoinTitle": "Unisciti alla lista Handl"
+      "shareJoinTitle": "Unisciti alla lista Handl",
+      "landingTitle": "Benvenuto in Handl",
+      "landingBody": "Unisciti a una lista esistente o creane una nuova.",
+      "landingJoinExisting": "Unisciti a lista esistente",
+      "landingCreateNew": "Crea nuova lista",
+      "landingSharePlaceholder": "Codice di condivisione"
     }
   }
 }

@@ -22,6 +22,12 @@ const copyShareCodeButton = document.getElementById('copy-share-code-button');
 const shareListButton = document.getElementById('share-list-button');
 const restoreCodeInput = document.getElementById('restore-code-input');
 const restoreCodeButton = document.getElementById('restore-code-button');
+const landingScreen = document.getElementById('landing-screen');
+const landingCreateButton = document.getElementById('landing-create-button');
+const landingJoinButton = document.getElementById('landing-join-button');
+const landingJoinForm = document.getElementById('landing-join-form');
+const landingShareCodeInput = document.getElementById('landing-share-code');
+const landingJoinSubmit = document.getElementById('landing-join-submit');
 const themeColorMeta = document.getElementById('theme-color-meta');
 
 const DEFAULT_SETTINGS = { sortChecked: false, colorScheme: 'default', language: 'en' };
@@ -67,7 +73,12 @@ const FALLBACK_TRANSLATIONS = {
     loginHeading: 'Unlock',
     loginPasswordLabel: 'Password',
     loginSubmit: 'Enter',
-    loginInvalid: 'Incorrect password.'
+    loginInvalid: 'Incorrect password.',
+    landingTitle: 'Welcome to Handl',
+    landingBody: 'Join an existing list or create a new one.',
+    landingJoinExisting: 'Join existing list',
+    landingCreateNew: 'Create new list',
+    landingSharePlaceholder: 'Share code'
   }
 };
 
@@ -129,6 +140,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!code) return;
     restoreList(code);
   };
+
+  landingCreateButton?.addEventListener('click', createNewList);
+  landingJoinButton?.addEventListener('click', () => {
+    if (!landingJoinForm) return;
+    landingJoinForm.classList.remove('hidden');
+    landingShareCodeInput?.focus();
+  });
+  landingJoinSubmit?.addEventListener('click', attemptLandingJoin);
+  landingShareCodeInput?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    attemptLandingJoin();
+  });
 
   restoreCodeButton?.addEventListener('click', attemptRestore);
   restoreCodeInput?.addEventListener('focus', () => {
@@ -585,8 +609,6 @@ function connectSocket() {
 
 async function initializeSession() {
   try {
-    sessionToken = loadSessionToken() || crypto.randomUUID?.() || Math.random().toString(36).slice(2);
-    persistSessionToken(sessionToken);
     const joinCode = getJoinCodeFromUrl();
     if (joinCode) {
       await joinList(joinCode);
@@ -599,27 +621,43 @@ async function initializeSession() {
       clearJoinCodeFromUrl();
       return;
     }
-    sessionFetchStartedAt = performance.now();
-    const url = `/session?token=${encodeURIComponent(sessionToken)}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error('session unavailable');
+    const storedToken = loadSessionToken();
+    if (!storedToken) {
+      showLandingScreen();
+      return;
     }
-    const session = await res.json();
-    debugMetric('session-loaded', {
-      fetchMs: elapsedMs(sessionFetchStartedAt),
-      listId: session.listId || ''
-    });
-    await applySessionResponse(session);
-    connectSocket();
+    sessionToken = storedToken;
+    await loadSessionFromServer();
   } catch (error) {
     console.warn('Failed to initialize session', error);
     setStatus('warn');
   }
 }
 
+async function loadSessionFromServer({ createToken = false } = {}) {
+  if (createToken || !sessionToken) {
+    sessionToken = crypto.randomUUID?.() || Math.random().toString(36).slice(2);
+    persistSessionToken(sessionToken);
+  }
+  sessionFetchStartedAt = performance.now();
+  const url = `/session?token=${encodeURIComponent(sessionToken)}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error('session unavailable');
+  }
+  const session = await res.json();
+  debugMetric('session-loaded', {
+    fetchMs: elapsedMs(sessionFetchStartedAt),
+    listId: session.listId || '',
+    created: Boolean(createToken)
+  });
+  await applySessionResponse(session);
+  hideLandingScreen();
+}
+
 async function restoreList(code) {
   try {
+    sessionToken = ensureSessionToken();
     sessionFetchStartedAt = performance.now();
     const res = await fetch('/restore', {
       method: 'POST',
@@ -636,6 +674,7 @@ async function restoreList(code) {
       restoreCodeInput.value = '';
     }
     clearJoinCodeFromUrl();
+    hideLandingScreen();
     debugMetric('restore-loaded', {
       fetchMs: elapsedMs(sessionFetchStartedAt),
       shareCode: code
@@ -683,6 +722,44 @@ async function applySessionResponse(session) {
   updatePresence(0);
   schedulePersistDocument();
   connectSocket();
+}
+
+function showLandingScreen() {
+  if (landingScreen) {
+    landingScreen.classList.remove('hidden');
+    landingScreen.setAttribute('aria-hidden', 'false');
+  }
+  document.body.classList.add('landing-open');
+  if (landingJoinForm) {
+    landingJoinForm.classList.add('hidden');
+  }
+  if (landingShareCodeInput) {
+    landingShareCodeInput.value = '';
+  }
+}
+
+function hideLandingScreen() {
+  if (landingScreen) {
+    landingScreen.classList.add('hidden');
+    landingScreen.setAttribute('aria-hidden', 'true');
+  }
+  document.body.classList.remove('landing-open');
+}
+
+async function createNewList() {
+  try {
+    await loadSessionFromServer({ createToken: true });
+    clearJoinCodeFromUrl();
+  } catch (error) {
+    console.warn('Failed to create new list', error);
+    alert('Unable to create a new list right now. Please try again.');
+  }
+}
+
+async function attemptLandingJoin() {
+  const code = (landingShareCodeInput?.value ?? '').trim().toUpperCase();
+  if (!code) return;
+  await joinList(code);
 }
 
 function loadDocFromSession(session) {
@@ -769,6 +846,7 @@ async function joinList(listId) {
   const code = (listId || '').trim();
   if (!code) return;
   try {
+    sessionToken = ensureSessionToken();
     sessionFetchStartedAt = performance.now();
     const res = await fetch('/join', {
       method: 'POST',
@@ -784,6 +862,7 @@ async function joinList(listId) {
     if (restoreCodeInput) {
       restoreCodeInput.value = '';
     }
+    hideLandingScreen();
     debugMetric('join-loaded', {
       fetchMs: elapsedMs(sessionFetchStartedAt),
       shareCode: code
@@ -826,6 +905,13 @@ function loadSessionToken() {
     console.warn('Failed to load session token', error);
     return null;
   }
+}
+
+function ensureSessionToken() {
+  if (sessionToken) return sessionToken;
+  sessionToken = loadSessionToken() || crypto.randomUUID?.() || Math.random().toString(36).slice(2);
+  persistSessionToken(sessionToken);
+  return sessionToken;
 }
 
 function persistSessionToken(token) {
@@ -1065,7 +1151,11 @@ function applyTranslations() {
   const languageLabel = settingsDialog?.querySelector('[data-i18n="languageLabel"]');
   const listIdLabel = settingsDialog?.querySelector('[data-i18n="listIdLabel"]');
   const joinLabel = settingsDialog?.querySelector('[data-i18n="joinListLabel"]');
-  const joinButton = document.querySelector('[data-i18n="joinButton"]');
+  const joinButtons = document.querySelectorAll('[data-i18n="joinButton"]');
+  const landingTitle = document.querySelector('[data-i18n="landingTitle"]');
+  const landingBody = document.querySelector('[data-i18n="landingBody"]');
+  const landingCreateLabel = document.querySelector('[data-i18n="landingCreateNew"]');
+  const landingJoinLabel = document.querySelector('[data-i18n="landingJoinExisting"]');
 
   if (header) header.textContent = locale.settingsTitle;
   if (sortLabel) sortLabel.textContent = locale.sortChecked;
@@ -1077,7 +1167,16 @@ function applyTranslations() {
   }
   if (listIdLabel) listIdLabel.textContent = locale.listIdLabel;
   if (joinLabel) joinLabel.textContent = locale.joinListLabel;
-  if (joinButton) joinButton.textContent = locale.joinButton;
+  joinButtons.forEach((button) => {
+    button.textContent = locale.joinButton;
+  });
+  if (landingTitle) landingTitle.textContent = locale.landingTitle;
+  if (landingBody) landingBody.textContent = locale.landingBody;
+  if (landingCreateLabel) landingCreateLabel.textContent = locale.landingCreateNew;
+  if (landingJoinLabel) landingJoinLabel.textContent = locale.landingJoinExisting;
+  if (landingShareCodeInput) {
+    landingShareCodeInput.placeholder = locale.landingSharePlaceholder;
+  }
   if (restoreCodeInput) {
     restoreCodeInput.placeholder = locale.listIdPlaceholder;
   }
