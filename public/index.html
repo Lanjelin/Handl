@@ -264,6 +264,23 @@ Bread"
       </form>
     </dialog>
 
+    <dialog id="confirm-dialog" class="confirm-dialog">
+      <form method="dialog">
+        <header class="confirm-header">
+          <h3 data-i18n="removeCheckedConfirmTitle">Remove checked items?</h3>
+        </header>
+        <p class="confirm-body" data-i18n="removeCheckedConfirmBody">This cannot be undone.</p>
+        <div class="confirm-actions">
+          <button id="confirm-cancel" type="button" class="ghost" data-i18n="removeCheckedConfirmCancel">
+            Cancel
+          </button>
+          <button id="confirm-remove" type="button" class="danger" data-i18n="removeCheckedConfirmOk">
+            Remove
+          </button>
+        </div>
+      </form>
+    </dialog>
+
     <template id="item-template">
       <label class="check-row">
         <input type="checkbox" />

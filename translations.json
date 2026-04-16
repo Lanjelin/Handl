@@ -93,6 +93,10 @@
       "landingInviteBody": "Joining will remove you from your current list.",
       "landingInviteJoin": "Join",
       "landingInviteCancel": "Cancel",
+      "removeCheckedConfirmTitle": "Remove checked items?",
+      "removeCheckedConfirmBody": "This cannot be undone.",
+      "removeCheckedConfirmOk": "Remove",
+      "removeCheckedConfirmCancel": "Cancel",
       "copyFeedback": "Copied"
     },
     "no": {
@@ -131,6 +135,10 @@
       "landingInviteBody": "Å bli med vil fjerne deg fra den nåværende listen.",
       "landingInviteJoin": "Bli med",
       "landingInviteCancel": "Avbryt",
+      "removeCheckedConfirmTitle": "Fjerne avkryssede elementer?",
+      "removeCheckedConfirmBody": "Dette kan ikke angres.",
+      "removeCheckedConfirmOk": "Fjern",
+      "removeCheckedConfirmCancel": "Avbryt",
       "copyFeedback": "Kopiert"
     },
     "es": {
@@ -169,6 +177,10 @@
       "landingInviteBody": "Unirte te quitará de tu lista actual.",
       "landingInviteJoin": "Unirse",
       "landingInviteCancel": "Cancelar",
+      "removeCheckedConfirmTitle": "¿Eliminar los elementos marcados?",
+      "removeCheckedConfirmBody": "Esto no se puede deshacer.",
+      "removeCheckedConfirmOk": "Eliminar",
+      "removeCheckedConfirmCancel": "Cancelar",
       "copyFeedback": "Copiado"
     },
     "sv": {
@@ -207,6 +219,10 @@
       "landingInviteBody": "Att gå med tar bort dig från din nuvarande lista.",
       "landingInviteJoin": "Gå med",
       "landingInviteCancel": "Avbryt",
+      "removeCheckedConfirmTitle": "Ta bort markerade objekt?",
+      "removeCheckedConfirmBody": "Det går inte att ångra.",
+      "removeCheckedConfirmOk": "Ta bort",
+      "removeCheckedConfirmCancel": "Avbryt",
       "copyFeedback": "Kopierat"
     },
     "da": {
@@ -245,6 +261,10 @@
       "landingInviteBody": "At deltage fjerner dig fra din nuværende liste.",
       "landingInviteJoin": "Deltag",
       "landingInviteCancel": "Annuller",
+      "removeCheckedConfirmTitle": "Fjerne markerede elementer?",
+      "removeCheckedConfirmBody": "Dette kan ikke fortrydes.",
+      "removeCheckedConfirmOk": "Fjern",
+      "removeCheckedConfirmCancel": "Annuller",
       "copyFeedback": "Kopieret"
     },
     "fi": {
@@ -283,6 +303,10 @@
       "landingInviteBody": "Liittyminen poistaa sinut nykyisestä listastasi.",
       "landingInviteJoin": "Liity",
       "landingInviteCancel": "Peruuta",
+      "removeCheckedConfirmTitle": "Poistetaanko valitut kohteet?",
+      "removeCheckedConfirmBody": "Tätä ei voi kumota.",
+      "removeCheckedConfirmOk": "Poista",
+      "removeCheckedConfirmCancel": "Peruuta",
       "copyFeedback": "Kopioitu"
     },
     "de": {
@@ -321,6 +345,10 @@
       "landingInviteBody": "Dadurch wirst du von deiner aktuellen Liste entfernt.",
       "landingInviteJoin": "Beitreten",
       "landingInviteCancel": "Abbrechen",
+      "removeCheckedConfirmTitle": "Markierte Elemente entfernen?",
+      "removeCheckedConfirmBody": "Das kann nicht rückgängig gemacht werden.",
+      "removeCheckedConfirmOk": "Entfernen",
+      "removeCheckedConfirmCancel": "Abbrechen",
       "copyFeedback": "Kopiert"
     },
     "nl": {
@@ -359,6 +387,10 @@
       "landingInviteBody": "Hiermee word je van je huidige lijst verwijderd.",
       "landingInviteJoin": "Deelnemen",
       "landingInviteCancel": "Annuleren",
+      "removeCheckedConfirmTitle": "Gemarkeerde items verwijderen?",
+      "removeCheckedConfirmBody": "Dit kan niet ongedaan worden gemaakt.",
+      "removeCheckedConfirmOk": "Verwijderen",
+      "removeCheckedConfirmCancel": "Annuleren",
       "copyFeedback": "Gekopieerd"
     },
     "fr": {
@@ -397,6 +429,10 @@
       "landingInviteBody": "Cela vous retirera de votre liste actuelle.",
       "landingInviteJoin": "Rejoindre",
       "landingInviteCancel": "Annuler",
+      "removeCheckedConfirmTitle": "Supprimer les éléments cochés ?",
+      "removeCheckedConfirmBody": "Cette action est irréversible.",
+      "removeCheckedConfirmOk": "Supprimer",
+      "removeCheckedConfirmCancel": "Annuler",
       "copyFeedback": "Copié"
     },
     "pt": {
@@ -435,6 +471,10 @@
       "landingInviteBody": "Isso o(a) removerá da sua lista atual.",
       "landingInviteJoin": "Entrar",
       "landingInviteCancel": "Cancelar",
+      "removeCheckedConfirmTitle": "Remover os itens marcados?",
+      "removeCheckedConfirmBody": "Isto não pode ser desfeito.",
+      "removeCheckedConfirmOk": "Remover",
+      "removeCheckedConfirmCancel": "Cancelar",
       "copyFeedback": "Copiado"
     },
     "it": {
@@ -473,6 +513,10 @@
       "landingInviteBody": "Questo ti rimuoverà dalla tua lista attuale.",
       "landingInviteJoin": "Unisciti",
       "landingInviteCancel": "Annulla",
+      "removeCheckedConfirmTitle": "Rimuovere gli elementi selezionati?",
+      "removeCheckedConfirmBody": "Questa operazione non può essere annullata.",
+      "removeCheckedConfirmOk": "Rimuovi",
+      "removeCheckedConfirmCancel": "Annulla",
       "copyFeedback": "Copiato"
     }
   }

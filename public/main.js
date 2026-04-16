@@ -13,9 +13,12 @@ const schemeSelect = document.getElementById('scheme-select');
 const titleHeading = document.querySelector('.pane-title h2');
 const settingsButton = document.getElementById('open-settings');
 const settingsDialog = document.getElementById('settings-dialog');
+const confirmDialog = document.getElementById('confirm-dialog');
 const settingsSort = document.getElementById('sort-checked');
 const removeCheckedButton = document.getElementById('remove-checked');
 const closeSettingsButton = document.getElementById('close-settings');
+const confirmRemoveButton = document.getElementById('confirm-remove');
+const confirmCancelButton = document.getElementById('confirm-cancel');
 const languageSelect = document.getElementById('language-select');
 const shareCodeInput = document.getElementById('settings-share-code');
 const copyShareCodeButton = document.getElementById('copy-share-code-button');
@@ -90,7 +93,11 @@ const FALLBACK_TRANSLATIONS = {
     landingInviteBody: 'Joining will remove you from your current list.',
     landingInviteJoin: 'Join',
     landingInviteCancel: 'Cancel',
-    copyFeedback: 'Copied'
+    copyFeedback: 'Copied',
+    removeCheckedConfirmTitle: 'Remove checked items?',
+    removeCheckedConfirmBody: 'This cannot be undone.',
+    removeCheckedConfirmOk: 'Remove',
+    removeCheckedConfirmCancel: 'Cancel'
   }
 };
 
@@ -132,6 +139,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   closeSettingsButton.addEventListener('click', () => settingsDialog.close());
   settingsSort.addEventListener('change', handleSortToggle);
   removeCheckedButton.addEventListener('click', removeCheckedItems);
+  confirmRemoveButton?.addEventListener('click', confirmRemoveCheckedItems);
+  confirmCancelButton?.addEventListener('click', closeConfirmDialog);
   toggleModeButton.addEventListener('click', toggleMode);
   copyShareCodeButton?.addEventListener('click', copyListIdToClipboard);
   shareListButton?.addEventListener('click', shareListLink);
@@ -139,6 +148,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   settingsDialog.addEventListener('click', (event) => {
     if (event.target === settingsDialog) {
       settingsDialog.close();
+    }
+  });
+  confirmDialog?.addEventListener('click', (event) => {
+    if (event.target === confirmDialog) {
+      closeConfirmDialog();
     }
   });
 
@@ -540,7 +554,16 @@ function removeCheckedItems() {
   if (!appReady || !doc) return;
   const remaining = items.filter((item) => !item.checked);
   if (remaining.length === items.length) return;
-  if (!confirm('Remove all checked items? This cannot be undone.')) return;
+  openConfirmDialog();
+}
+
+function confirmRemoveCheckedItems() {
+  if (!appReady || !doc) return;
+  const remaining = items.filter((item) => !item.checked);
+  if (remaining.length === items.length) {
+    closeConfirmDialog();
+    return;
+  }
   mutateDoc((draft) => {
     draft.items = remaining.map((item) => ({
       id: item.id,
@@ -548,9 +571,20 @@ function removeCheckedItems() {
       checked: Boolean(item.checked)
     }));
   });
+  closeConfirmDialog();
   if (settingsDialog.open) {
     settingsDialog.close();
   }
+}
+
+function openConfirmDialog() {
+  if (!confirmDialog) return;
+  confirmDialog.showModal();
+}
+
+function closeConfirmDialog() {
+  if (!confirmDialog?.open) return;
+  confirmDialog.close();
 }
 
 async function fetchThemeCatalog() {
@@ -1301,6 +1335,14 @@ function applyTranslations() {
   if (landingInviteCancelLabel) landingInviteCancelLabel.textContent = locale.landingInviteCancel;
   if (landingInviteBody) landingInviteBody.textContent = locale.landingInviteBody;
   if (copyFeedbackLabel) copyFeedbackLabel.textContent = locale.copyFeedback;
+  const confirmTitleLabel = document.querySelector('[data-i18n="removeCheckedConfirmTitle"]');
+  const confirmBodyLabel = document.querySelector('[data-i18n="removeCheckedConfirmBody"]');
+  const confirmOkLabel = document.querySelector('[data-i18n="removeCheckedConfirmOk"]');
+  const confirmCancelLabel = document.querySelector('[data-i18n="removeCheckedConfirmCancel"]');
+  if (confirmTitleLabel) confirmTitleLabel.textContent = locale.removeCheckedConfirmTitle;
+  if (confirmBodyLabel) confirmBodyLabel.textContent = locale.removeCheckedConfirmBody;
+  if (confirmOkLabel) confirmOkLabel.textContent = locale.removeCheckedConfirmOk;
+  if (confirmCancelLabel) confirmCancelLabel.textContent = locale.removeCheckedConfirmCancel;
   if (landingShareCodeInput) {
     landingShareCodeInput.placeholder = locale.landingSharePlaceholder;
   }

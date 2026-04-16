@@ -356,6 +356,42 @@ button.danger {
   background: rgba(2, 6, 23, 0.7);
 }
 
+.confirm-dialog {
+  border: none;
+  border-radius: 1rem;
+  padding: 1.05rem 1.15rem 1.1rem;
+  background: var(--panel-bg);
+  color: var(--text-primary);
+  width: min(320px, 88vw);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
+}
+
+.confirm-dialog::backdrop {
+  background: rgba(2, 6, 23, 0.72);
+}
+
+.confirm-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--heading-color);
+}
+
+.confirm-body {
+  margin: 0.75rem 0 1rem;
+  color: var(--text-muted);
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.confirm-actions button {
+  min-width: 6.5rem;
+}
+
 .settings-header {
   display: flex;
   justify-content: space-between;
