@@ -1,17 +1,41 @@
+![Handl](https://raw.githubusercontent.com/Lanjelin/Handl/refs/heads/main/public/icon.svg)
+
 # Handl
 
-A phone-first collaborative shopping list PWA that feels like writing in a text editor while supporting real-time syncing.
+Handl is a shared shopping list for families and couples.
 
-Handl is online-first: shared list data syncs over the websocket connection, while the browser keeps only lightweight local prefs and a small JSON snapshot cache for faster reopen on that device.
+It is:
+- fast to open on phones
+- simple to share
+- collaborative for a few people at a time
+- online-first, with a small local cache for quicker reopen on the same device
 
-## Available builds
+It is not:
+- an offline-first note app
+- a task manager
+- a general-purpose document editor
+- a multi-user account system
 
-- Container image (hosted on GitHub Container Registry): `ghcr.io/lanjelin/handl:latest`
-- Source code: `https://github.com/Lanjelin/Handl`
+## Try it
 
-## Running
+- Hosted instance: [handl.gn.gy](https://handl.gn.gy/)
+- Docker image: `ghcr.io/lanjelin/handl:latest`
 
-### 1. Docker
+## How to use it
+
+1. Open Handl and create a new list, or join one with a share code.
+2. Share the list code with the other people who should use the list.
+3. Use the list like a simple shopping list:
+   - check items off
+   - add new items or edit the list
+   - remove checked items when done shopping
+
+On mobile, the share button opens the native share sheet where supported.
+On desktop, copy the list code and send it however you want.
+
+## Self-host
+
+### Docker run
 
 ```bash
 docker run -d \
@@ -21,82 +45,53 @@ docker run -d \
   ghcr.io/lanjelin/handl:latest
 ```
 
-- Persisted data lives under `/app/data` inside the container, so mount a volume for durability.
-- The container runs as UID/GID `1000:1000` (the `node` user in the base image); override it with `--user <>` (e.g., `--user node:node`) if your host volume needs different ownership.
-- Set `PORT` in the container if you need a different HTTP port than `3000`.
-
-### 2. Docker Compose
+### Docker Compose
 
 ```yaml
-version: '3.9'
 services:
   handl:
     image: ghcr.io/lanjelin/handl:latest
     ports:
-      - 3000:3000
+      - "3000:3000"
     volumes:
       - ./data:/app/data
+    env_file:
+      - ./data/.env
     restart: unless-stopped
 ```
 
-Set the `PORT` environment variable in the compose service if you need a different HTTP port (defaults to `3000`).
-
-Run with:
+### From source
 
 ```bash
-docker compose up -d
+git clone https://github.com/Lanjelin/Handl.git
+cd Handl
+npm install
+npm start
 ```
 
-The compose setup mirrors the `docker run` example and maps `./data` into `/app/data` for persistence.
+## Configuration
 
-### 3. From source (npm)
+Handl reads optional environment variables from `./data/.env` when self-hosted.
+You can also set them directly in the container or shell environment.
 
-1. Clone the repo:
-
-   ```bash
-   git clone https://github.com/Lanjelin/Handl.git
-   cd Handl
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-3. Start the server:
-
-   ```bash
-   export PORT=3000  # optional, defaults to 3000
-   npm start
-   ```
-
-## Environment variables
-
-Put these in `./data/.env` when running from source or mounting a container volume.
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | HTTP port where Handl listens | `3000` |
-| `DATA_DIR` | Base directory for local app data | `./data` |
-| `DB_FILE` | SQLite database path | `./data/handl.db` |
-| `PUBLIC_DIR` | Static asset directory | `./public` |
-| `PRUNE_AFTER_MS` | Delete inactive lists after this long | `15552000000` |
-| `PERSIST_DEBOUNCE_MS` | Delay before writing active edits to SQLite | `750` |
-| `PERSIST_MAX_DELAY_MS` | Maximum time before forcing a persistence flush | `30000` |
-| `BROADCAST_DEBOUNCE_MS` | Batch websocket fanout during bursts | `50` |
-| `COMPACT_IDLE_DELAY_MS` | Delay before compacting an idle list | `120000` |
-| `HEARTBEAT_MS` | Interval for websocket heartbeats used to detect stale connections | `15000` |
-| `METRICS_WINDOW_MS` | Rolling window used by `/metrics` for recent request counts | `900000` |
-| `SHARE_CODE_LENGTH` | Length of generated restore codes | `8` |
-| `SHARE_CODE_ALPHABET` | Alphabet used for restore codes | `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` |
-| `DEBUG_METRICS` | Enable lightweight browser console timing logs | `0` |
+Common values:
+- `PORT`
+- `DATA_DIR`
+- `DB_FILE`
+- `PUBLIC_DIR`
+- `PRUNE_AFTER_MS`
+- `PERSIST_DEBOUNCE_MS`
+- `PERSIST_MAX_DELAY_MS`
+- `BROADCAST_DEBOUNCE_MS`
+- `COMPACT_IDLE_DELAY_MS`
+- `HEARTBEAT_MS`
+- `METRICS_WINDOW_MS`
+- `SHARE_CODE_LENGTH`
+- `SHARE_CODE_ALPHABET`
+- `DEBUG_METRICS`
 
 ## Notes
 
-- Data is stored in `data/handl.db` (SQLite). Make sure your Docker volume or local `data/` directory is writable.
-- The app listens on port `3000` by default. Override it with `PORT` if needed.
-- If you run from npm, you can still reuse the Docker volume contents by pointing your local `data/` directory at the same path.
-- `/metrics` exposes a small operational snapshot: cached list count, active websocket clients, timer counts, and recent request totals within `METRICS_WINDOW_MS`.
-- The mobile share button uses the native share sheet on supported devices and shares `/?join=<shareCode>`.
-- The browser cache stores only a plain JSON snapshot of the current list; theme/language/checkbox-sort preferences are kept locally in the browser and persist across lists. It no longer keeps a full Automerge blob locally.
+- Data is stored in SQLite under `./data`.
+- `/metrics` exposes a small operational snapshot for debugging.
+- If you change the container port, update `PORT` accordingly.
