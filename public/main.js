@@ -292,8 +292,7 @@ function mutateDoc(mutator, options = {}) {
 function handleEditorInput() {
   if (!appReady || !doc) return;
   const nextLines = parseEditorLines(editor.value);
-  const currentVisible = applySort([...items]);
-  const nextItems = reconcileLines(currentVisible, nextLines);
+  const nextItems = reconcileLines(items, nextLines);
 
   mutateDoc((draft) => {
     draft.items = nextItems.map((item) => ({
@@ -375,7 +374,8 @@ function reconcileLines(currentItems, nextLines) {
 
 function render() {
   const ordered = applySort(items.map((item) => ({ ...item })));
-  const textValue = ordered.map((item) => item.text).join('\n');
+  const textItems = viewMode ? ordered : items;
+  const textValue = textItems.map((item) => item.text).join('\n');
 
   settingsSort.checked = Boolean(settings.sortChecked);
   applyColorScheme(settings.colorScheme);
