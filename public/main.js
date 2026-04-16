@@ -25,9 +25,15 @@ const restoreCodeButton = document.getElementById('restore-code-button');
 const landingScreen = document.getElementById('landing-screen');
 const landingCreateButton = document.getElementById('landing-create-button');
 const landingJoinButton = document.getElementById('landing-join-button');
+const landingActions = document.getElementById('landing-actions');
+const landingInviteActions = document.getElementById('landing-invite-actions');
+const landingInviteJoinButton = document.getElementById('landing-invite-join-button');
+const landingInviteCancelButton = document.getElementById('landing-invite-cancel-button');
 const landingJoinForm = document.getElementById('landing-join-form');
 const landingShareCodeInput = document.getElementById('landing-share-code');
 const landingJoinSubmit = document.getElementById('landing-join-submit');
+const landingTitle = document.querySelector('[data-i18n="landingTitle"]');
+const landingBody = document.querySelector('[data-i18n="landingBody"]');
 const themeColorMeta = document.getElementById('theme-color-meta');
 
 const DEFAULT_SETTINGS = { sortChecked: false, colorScheme: 'default', language: 'en' };
@@ -78,7 +84,11 @@ const FALLBACK_TRANSLATIONS = {
     landingBody: 'Join an existing list or create a new one.',
     landingJoinExisting: 'Join existing list',
     landingCreateNew: 'Create new list',
-    landingSharePlaceholder: 'Share code'
+    landingSharePlaceholder: 'Share code',
+    landingInviteTitle: "You've been invited to join list {code}",
+    landingInviteBody: 'This will remove you from your current list.',
+    landingInviteJoin: 'Join list',
+    landingInviteCancel: 'Cancel'
   }
 };
 
@@ -109,6 +119,8 @@ let lastHeartbeatAt = 0;
 let socketGeneration = 0;
 let currentStatusVariant = 'idle';
 let connectedPeers = 0;
+let landingMode = 'welcome';
+let pendingJoinCode = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
   editor.addEventListener('input', handleEditorInput);
@@ -147,6 +159,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     landingJoinForm.classList.remove('hidden');
     landingShareCodeInput?.focus();
   });
+  landingInviteJoinButton?.addEventListener('click', acceptInviteJoin);
+  landingInviteCancelButton?.addEventListener('click', cancelInviteJoin);
   landingJoinSubmit?.addEventListener('click', attemptLandingJoin);
   landingShareCodeInput?.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return;
@@ -611,6 +625,17 @@ async function initializeSession() {
   try {
     const joinCode = getJoinCodeFromUrl();
     if (joinCode) {
+      const storedToken = loadSessionToken();
+      if (storedToken && activeListId) {
+        sessionToken = storedToken;
+        await loadSessionFromServer();
+        if (shareCodeValue && shareCodeValue.toUpperCase() === joinCode.toUpperCase()) {
+          clearJoinCodeFromUrl();
+          return;
+        }
+        showInviteConfirmation(joinCode);
+        return;
+      }
       await joinList(joinCode);
       clearJoinCodeFromUrl();
       return;
@@ -652,7 +677,9 @@ async function loadSessionFromServer({ createToken = false } = {}) {
     created: Boolean(createToken)
   });
   await applySessionResponse(session);
-  hideLandingScreen();
+  if (landingMode === 'welcome') {
+    hideLandingScreen();
+  }
 }
 
 async function restoreList(code) {
@@ -725,6 +752,8 @@ async function applySessionResponse(session) {
 }
 
 function showLandingScreen() {
+  landingMode = 'welcome';
+  pendingJoinCode = '';
   if (landingScreen) {
     landingScreen.classList.remove('hidden');
     landingScreen.setAttribute('aria-hidden', 'false');
@@ -733,9 +762,16 @@ function showLandingScreen() {
   if (landingJoinForm) {
     landingJoinForm.classList.add('hidden');
   }
+  if (landingActions) {
+    landingActions.classList.remove('hidden');
+  }
+  if (landingInviteActions) {
+    landingInviteActions.classList.add('hidden');
+  }
   if (landingShareCodeInput) {
     landingShareCodeInput.value = '';
   }
+  renderLandingCopy();
 }
 
 function hideLandingScreen() {
@@ -744,6 +780,49 @@ function hideLandingScreen() {
     landingScreen.setAttribute('aria-hidden', 'true');
   }
   document.body.classList.remove('landing-open');
+  landingMode = 'welcome';
+  pendingJoinCode = '';
+}
+
+function showInviteConfirmation(code) {
+  landingMode = 'invite';
+  pendingJoinCode = (code || '').trim().toUpperCase();
+  if (landingScreen) {
+    landingScreen.classList.remove('hidden');
+    landingScreen.setAttribute('aria-hidden', 'false');
+  }
+  document.body.classList.add('landing-open');
+  if (landingActions) {
+    landingActions.classList.add('hidden');
+  }
+  if (landingInviteActions) {
+    landingInviteActions.classList.remove('hidden');
+  }
+  if (landingJoinForm) {
+    landingJoinForm.classList.add('hidden');
+  }
+  renderLandingCopy();
+}
+
+function renderLandingCopy() {
+  const locale = getLocale();
+  if (landingMode === 'invite') {
+    if (landingTitle) {
+      landingTitle.textContent = formatTemplate(locale.landingInviteTitle, { code: pendingJoinCode });
+    }
+    if (landingBody) {
+      landingBody.textContent = locale.landingInviteBody;
+    }
+    if (landingInviteJoinButton) {
+      landingInviteJoinButton.textContent = locale.landingInviteJoin;
+    }
+    if (landingInviteCancelButton) {
+      landingInviteCancelButton.textContent = locale.landingInviteCancel;
+    }
+    return;
+  }
+  if (landingTitle) landingTitle.textContent = locale.landingTitle;
+  if (landingBody) landingBody.textContent = locale.landingBody;
 }
 
 async function createNewList() {
@@ -760,6 +839,18 @@ async function attemptLandingJoin() {
   const code = (landingShareCodeInput?.value ?? '').trim().toUpperCase();
   if (!code) return;
   await joinList(code);
+}
+
+async function acceptInviteJoin() {
+  const code = (pendingJoinCode || '').trim();
+  if (!code) return;
+  await joinList(code);
+  clearJoinCodeFromUrl();
+}
+
+function cancelInviteJoin() {
+  clearJoinCodeFromUrl();
+  hideLandingScreen();
 }
 
 function loadDocFromSession(session) {
@@ -883,6 +974,12 @@ function ensureSessionToken() {
   sessionToken = loadSessionToken() || crypto.randomUUID?.() || Math.random().toString(36).slice(2);
   persistSessionToken(sessionToken);
   return sessionToken;
+}
+
+function formatTemplate(template, replacements) {
+  return String(template || '')
+    .replace(/\{code\}/g, replacements?.code ?? '')
+    .trim();
 }
 
 function persistSessionToken(token) {
@@ -1127,6 +1224,9 @@ function applyTranslations() {
   const landingBody = document.querySelector('[data-i18n="landingBody"]');
   const landingCreateLabel = document.querySelector('[data-i18n="landingCreateNew"]');
   const landingJoinLabel = document.querySelector('[data-i18n="landingJoinExisting"]');
+  const landingInviteJoinLabel = document.querySelector('[data-i18n="landingInviteJoin"]');
+  const landingInviteCancelLabel = document.querySelector('[data-i18n="landingInviteCancel"]');
+  const landingInviteBody = document.querySelector('[data-i18n="landingInviteBody"]');
 
   if (header) header.textContent = locale.settingsTitle;
   if (sortLabel) sortLabel.textContent = locale.sortChecked;
@@ -1145,9 +1245,13 @@ function applyTranslations() {
   if (landingBody) landingBody.textContent = locale.landingBody;
   if (landingCreateLabel) landingCreateLabel.textContent = locale.landingCreateNew;
   if (landingJoinLabel) landingJoinLabel.textContent = locale.landingJoinExisting;
+  if (landingInviteJoinLabel) landingInviteJoinLabel.textContent = locale.landingInviteJoin;
+  if (landingInviteCancelLabel) landingInviteCancelLabel.textContent = locale.landingInviteCancel;
+  if (landingInviteBody) landingInviteBody.textContent = locale.landingInviteBody;
   if (landingShareCodeInput) {
     landingShareCodeInput.placeholder = locale.landingSharePlaceholder;
   }
+  renderLandingCopy();
   if (restoreCodeInput) {
     restoreCodeInput.placeholder = locale.listIdPlaceholder;
   }

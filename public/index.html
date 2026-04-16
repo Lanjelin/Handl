@@ -61,6 +61,9 @@
               setText('[data-i18n="landingBody"]', locale.landingBody);
               setText('[data-i18n="landingCreateNew"]', locale.landingCreateNew);
               setText('[data-i18n="landingJoinExisting"]', locale.landingJoinExisting);
+              setText('[data-i18n="landingInviteJoin"]', locale.landingInviteJoin);
+              setText('[data-i18n="landingInviteCancel"]', locale.landingInviteCancel);
+              setText('[data-i18n="landingInviteBody"]', locale.landingInviteBody);
 
               const settingsButton = document.getElementById('open-settings');
               if (settingsButton && locale.settingsTooltip) {
@@ -129,10 +132,16 @@
           <h1 data-i18n="landingTitle">Welcome to Handl</h1>
           <p data-i18n="landingBody">Join an existing list or create a new one.</p>
         </div>
-        <div class="landing-actions">
+        <div id="landing-actions" class="landing-actions">
           <button id="landing-create-button" type="button" data-i18n="landingCreateNew">Create new list</button>
           <button id="landing-join-button" class="ghost" type="button" data-i18n="landingJoinExisting">
             Join existing list
+          </button>
+        </div>
+        <div id="landing-invite-actions" class="landing-actions hidden">
+          <button id="landing-invite-join-button" type="button" data-i18n="landingInviteJoin">Join list</button>
+          <button id="landing-invite-cancel-button" class="ghost" type="button" data-i18n="landingInviteCancel">
+            Cancel
           </button>
         </div>
         <div id="landing-join-form" class="landing-join-form hidden">

@@ -88,7 +88,11 @@
       "landingBody": "Join an existing list or create a new one.",
       "landingJoinExisting": "Join existing list",
       "landingCreateNew": "Create new list",
-      "landingSharePlaceholder": "Share code"
+      "landingSharePlaceholder": "Share code",
+      "landingInviteTitle": "You've been invited to join list {code}",
+      "landingInviteBody": "This will remove you from your current list.",
+      "landingInviteJoin": "Join list",
+      "landingInviteCancel": "Cancel"
     },
     "no": {
       "settingsTitle": "Innstillinger",
@@ -121,7 +125,11 @@
       "landingBody": "Bli med på en eksisterende liste eller opprett en ny.",
       "landingJoinExisting": "Bli med på eksisterende liste",
       "landingCreateNew": "Opprett ny liste",
-      "landingSharePlaceholder": "Delingskode"
+      "landingSharePlaceholder": "Delingskode",
+      "landingInviteTitle": "Du er invitert til å bli med i listen {code}",
+      "landingInviteBody": "Dette vil fjerne deg fra den nåværende listen.",
+      "landingInviteJoin": "Bli med i listen",
+      "landingInviteCancel": "Avbryt"
     },
     "es": {
       "settingsTitle": "Configuración",
@@ -154,7 +162,11 @@
       "landingBody": "Únete a una lista existente o crea una nueva.",
       "landingJoinExisting": "Unirse a lista existente",
       "landingCreateNew": "Crear nueva lista",
-      "landingSharePlaceholder": "Código para compartir"
+      "landingSharePlaceholder": "Código para compartir",
+      "landingInviteTitle": "Te han invitado a unirte a la lista {code}",
+      "landingInviteBody": "Esto te quitará de tu lista actual.",
+      "landingInviteJoin": "Unirse a la lista",
+      "landingInviteCancel": "Cancelar"
     },
     "sv": {
       "settingsTitle": "Inställningar",
@@ -187,7 +199,11 @@
       "landingBody": "Gå med i en befintlig lista eller skapa en ny.",
       "landingJoinExisting": "Gå med i befintlig lista",
       "landingCreateNew": "Skapa ny lista",
-      "landingSharePlaceholder": "Delningskod"
+      "landingSharePlaceholder": "Delningskod",
+      "landingInviteTitle": "Du har blivit inbjuden att gå med i listan {code}",
+      "landingInviteBody": "Detta tar bort dig från din nuvarande lista.",
+      "landingInviteJoin": "Gå med i listan",
+      "landingInviteCancel": "Avbryt"
     },
     "da": {
       "settingsTitle": "Indstillinger",
@@ -220,7 +236,11 @@
       "landingBody": "Deltag i en eksisterende liste eller opret en ny.",
       "landingJoinExisting": "Deltag i eksisterende liste",
       "landingCreateNew": "Opret ny liste",
-      "landingSharePlaceholder": "Delingskode"
+      "landingSharePlaceholder": "Delingskode",
+      "landingInviteTitle": "Du er blevet inviteret til at deltage i listen {code}",
+      "landingInviteBody": "Dette fjerner dig fra din nuværende liste.",
+      "landingInviteJoin": "Deltag i listen",
+      "landingInviteCancel": "Annuller"
     },
     "fi": {
       "settingsTitle": "Asetukset",
@@ -253,7 +273,11 @@
       "landingBody": "Liity olemassa olevaan listaan tai luo uusi.",
       "landingJoinExisting": "Liity olemassa olevaan listaan",
       "landingCreateNew": "Luo uusi lista",
-      "landingSharePlaceholder": "Jakamiskoodi"
+      "landingSharePlaceholder": "Jakamiskoodi",
+      "landingInviteTitle": "Sinut on kutsuttu liittymään listaan {code}",
+      "landingInviteBody": "Tämä poistaa sinut nykyisestä listastasi.",
+      "landingInviteJoin": "Liity listaan",
+      "landingInviteCancel": "Peruuta"
     },
     "de": {
       "settingsTitle": "Einstellungen",
@@ -286,7 +310,11 @@
       "landingBody": "Tritt einer bestehenden Liste bei oder erstelle eine neue.",
       "landingJoinExisting": "Bestehender Liste beitreten",
       "landingCreateNew": "Neue Liste erstellen",
-      "landingSharePlaceholder": "Freigabecode"
+      "landingSharePlaceholder": "Freigabecode",
+      "landingInviteTitle": "Du wurdest eingeladen, der Liste {code} beizutreten",
+      "landingInviteBody": "Dadurch wirst du von deiner aktuellen Liste entfernt.",
+      "landingInviteJoin": "Liste beitreten",
+      "landingInviteCancel": "Abbrechen"
     },
     "nl": {
       "settingsTitle": "Instellingen",
@@ -319,7 +347,11 @@
       "landingBody": "Doe mee met een bestaande lijst of maak een nieuwe.",
       "landingJoinExisting": "Bestaande lijst openen",
       "landingCreateNew": "Nieuwe lijst maken",
-      "landingSharePlaceholder": "Deelcode"
+      "landingSharePlaceholder": "Deelcode",
+      "landingInviteTitle": "Je bent uitgenodigd om lid te worden van lijst {code}",
+      "landingInviteBody": "Hiermee word je van je huidige lijst verwijderd.",
+      "landingInviteJoin": "Deelnemen aan lijst",
+      "landingInviteCancel": "Annuleren"
     },
     "fr": {
       "settingsTitle": "Paramètres",
@@ -352,7 +384,11 @@
       "landingBody": "Rejoignez une liste existante ou créez-en une nouvelle.",
       "landingJoinExisting": "Rejoindre une liste",
       "landingCreateNew": "Créer une nouvelle liste",
-      "landingSharePlaceholder": "Code de partage"
+      "landingSharePlaceholder": "Code de partage",
+      "landingInviteTitle": "Vous avez été invité à rejoindre la liste {code}",
+      "landingInviteBody": "Cela vous retirera de votre liste actuelle.",
+      "landingInviteJoin": "Rejoindre la liste",
+      "landingInviteCancel": "Annuler"
     },
     "pt": {
       "settingsTitle": "Configurações",
@@ -385,7 +421,11 @@
       "landingBody": "Entre em uma lista existente ou crie uma nova.",
       "landingJoinExisting": "Entrar em lista existente",
       "landingCreateNew": "Criar nova lista",
-      "landingSharePlaceholder": "Código de partilha"
+      "landingSharePlaceholder": "Código de partilha",
+      "landingInviteTitle": "Você foi convidado(a) para entrar na lista {code}",
+      "landingInviteBody": "Isso o(a) removerá da sua lista atual.",
+      "landingInviteJoin": "Entrar na lista",
+      "landingInviteCancel": "Cancelar"
     },
     "it": {
       "settingsTitle": "Impostazioni",
@@ -418,7 +458,11 @@
       "landingBody": "Unisciti a una lista esistente o creane una nuova.",
       "landingJoinExisting": "Unisciti a lista esistente",
       "landingCreateNew": "Crea nuova lista",
-      "landingSharePlaceholder": "Codice di condivisione"
+      "landingSharePlaceholder": "Codice di condivisione",
+      "landingInviteTitle": "Sei stato invitato a unirti alla lista {code}",
+      "landingInviteBody": "Questo ti rimuoverà dalla tua lista attuale.",
+      "landingInviteJoin": "Unisciti alla lista",
+      "landingInviteCancel": "Annulla"
     }
   }
 }
