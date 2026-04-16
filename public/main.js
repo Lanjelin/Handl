@@ -124,6 +124,7 @@ let connectedPeers = 0;
 let landingMode = 'welcome';
 let pendingJoinCode = '';
 let copyFeedbackTimeout = null;
+let editorLineMap = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
   editor.addEventListener('input', handleEditorInput);
@@ -292,7 +293,7 @@ function mutateDoc(mutator, options = {}) {
 function handleEditorInput() {
   if (!appReady || !doc) return;
   const nextLines = parseEditorLines(editor.value);
-  const nextItems = reconcileLines(items, nextLines);
+  const nextItems = reconcileLines(items, nextLines, editorLineMap);
 
   mutateDoc((draft) => {
     draft.items = nextItems.map((item) => ({
@@ -310,7 +311,7 @@ function parseEditorLines(value) {
     .filter(Boolean);
 }
 
-function reconcileLines(currentItems, nextLines) {
+function reconcileLines(currentItems, nextLines, previousLineMap = []) {
   const nextItems = [];
   let currentIndex = 0;
   let nextIndex = 0;
@@ -318,6 +319,7 @@ function reconcileLines(currentItems, nextLines) {
   while (currentIndex < currentItems.length && nextIndex < nextLines.length) {
     const currentItem = currentItems[currentIndex];
     const nextText = nextLines[nextIndex];
+    const previousLine = previousLineMap[nextIndex];
 
     if (currentItem.text === nextText) {
       nextItems.push({
@@ -331,6 +333,17 @@ function reconcileLines(currentItems, nextLines) {
     }
 
     const nextCurrent = currentItems[currentIndex + 1];
+    if (previousLine && previousLine.id === nextCurrent?.id && nextCurrent.text === nextText) {
+      nextItems.push({
+        id: currentItem.id,
+        text: nextText,
+        checked: Boolean(currentItem.checked)
+      });
+      currentIndex += 1;
+      nextIndex += 1;
+      continue;
+    }
+
     if (nextCurrent && nextCurrent.text === nextText) {
       currentIndex += 1;
       continue;
@@ -376,6 +389,7 @@ function render() {
   const ordered = applySort(items.map((item) => ({ ...item })));
   const textItems = viewMode ? ordered : items;
   const textValue = textItems.map((item) => item.text).join('\n');
+  editorLineMap = textItems.map((item) => ({ id: item.id, text: item.text }));
 
   settingsSort.checked = Boolean(settings.sortChecked);
   applyColorScheme(settings.colorScheme);
