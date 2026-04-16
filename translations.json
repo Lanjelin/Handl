@@ -89,9 +89,9 @@
       "landingJoinExisting": "Join existing list",
       "landingCreateNew": "Create new list",
       "landingSharePlaceholder": "Share code",
-      "landingInviteTitle": "You've been invited to join list {code}",
-      "landingInviteBody": "This will remove you from your current list.",
-      "landingInviteJoin": "Join list",
+      "landingInviteTitle": "Join list {code}?",
+      "landingInviteBody": "Joining will remove you from your current list.",
+      "landingInviteJoin": "Join",
       "landingInviteCancel": "Cancel"
     },
     "no": {
@@ -126,9 +126,9 @@
       "landingJoinExisting": "Bli med på eksisterende liste",
       "landingCreateNew": "Opprett ny liste",
       "landingSharePlaceholder": "Delingskode",
-      "landingInviteTitle": "Du er invitert til å bli med i listen {code}",
-      "landingInviteBody": "Dette vil fjerne deg fra den nåværende listen.",
-      "landingInviteJoin": "Bli med i listen",
+      "landingInviteTitle": "Bli med i listen {code}?",
+      "landingInviteBody": "Å bli med vil fjerne deg fra den nåværende listen.",
+      "landingInviteJoin": "Bli med",
       "landingInviteCancel": "Avbryt"
     },
     "es": {
@@ -163,9 +163,9 @@
       "landingJoinExisting": "Unirse a lista existente",
       "landingCreateNew": "Crear nueva lista",
       "landingSharePlaceholder": "Código para compartir",
-      "landingInviteTitle": "Te han invitado a unirte a la lista {code}",
-      "landingInviteBody": "Esto te quitará de tu lista actual.",
-      "landingInviteJoin": "Unirse a la lista",
+      "landingInviteTitle": "¿Unirte a la lista {code}?",
+      "landingInviteBody": "Unirte te quitará de tu lista actual.",
+      "landingInviteJoin": "Unirse",
       "landingInviteCancel": "Cancelar"
     },
     "sv": {
@@ -200,9 +200,9 @@
       "landingJoinExisting": "Gå med i befintlig lista",
       "landingCreateNew": "Skapa ny lista",
       "landingSharePlaceholder": "Delningskod",
-      "landingInviteTitle": "Du har blivit inbjuden att gå med i listan {code}",
-      "landingInviteBody": "Detta tar bort dig från din nuvarande lista.",
-      "landingInviteJoin": "Gå med i listan",
+      "landingInviteTitle": "Gå med i listan {code}?",
+      "landingInviteBody": "Att gå med tar bort dig från din nuvarande lista.",
+      "landingInviteJoin": "Gå med",
       "landingInviteCancel": "Avbryt"
     },
     "da": {
@@ -237,9 +237,9 @@
       "landingJoinExisting": "Deltag i eksisterende liste",
       "landingCreateNew": "Opret ny liste",
       "landingSharePlaceholder": "Delingskode",
-      "landingInviteTitle": "Du er blevet inviteret til at deltage i listen {code}",
-      "landingInviteBody": "Dette fjerner dig fra din nuværende liste.",
-      "landingInviteJoin": "Deltag i listen",
+      "landingInviteTitle": "Deltag i listen {code}?",
+      "landingInviteBody": "At deltage fjerner dig fra din nuværende liste.",
+      "landingInviteJoin": "Deltag",
       "landingInviteCancel": "Annuller"
     },
     "fi": {
@@ -274,9 +274,9 @@
       "landingJoinExisting": "Liity olemassa olevaan listaan",
       "landingCreateNew": "Luo uusi lista",
       "landingSharePlaceholder": "Jakamiskoodi",
-      "landingInviteTitle": "Sinut on kutsuttu liittymään listaan {code}",
-      "landingInviteBody": "Tämä poistaa sinut nykyisestä listastasi.",
-      "landingInviteJoin": "Liity listaan",
+      "landingInviteTitle": "Liity listaan {code}?",
+      "landingInviteBody": "Liittyminen poistaa sinut nykyisestä listastasi.",
+      "landingInviteJoin": "Liity",
       "landingInviteCancel": "Peruuta"
     },
     "de": {
@@ -311,9 +311,9 @@
       "landingJoinExisting": "Bestehender Liste beitreten",
       "landingCreateNew": "Neue Liste erstellen",
       "landingSharePlaceholder": "Freigabecode",
-      "landingInviteTitle": "Du wurdest eingeladen, der Liste {code} beizutreten",
+      "landingInviteTitle": "Liste {code} beitreten?",
       "landingInviteBody": "Dadurch wirst du von deiner aktuellen Liste entfernt.",
-      "landingInviteJoin": "Liste beitreten",
+      "landingInviteJoin": "Beitreten",
       "landingInviteCancel": "Abbrechen"
     },
     "nl": {
@@ -348,9 +348,9 @@
       "landingJoinExisting": "Bestaande lijst openen",
       "landingCreateNew": "Nieuwe lijst maken",
       "landingSharePlaceholder": "Deelcode",
-      "landingInviteTitle": "Je bent uitgenodigd om lid te worden van lijst {code}",
+      "landingInviteTitle": "Lid worden van lijst {code}?",
       "landingInviteBody": "Hiermee word je van je huidige lijst verwijderd.",
-      "landingInviteJoin": "Deelnemen aan lijst",
+      "landingInviteJoin": "Deelnemen",
       "landingInviteCancel": "Annuleren"
     },
     "fr": {
@@ -385,9 +385,9 @@
       "landingJoinExisting": "Rejoindre une liste",
       "landingCreateNew": "Créer une nouvelle liste",
       "landingSharePlaceholder": "Code de partage",
-      "landingInviteTitle": "Vous avez été invité à rejoindre la liste {code}",
+      "landingInviteTitle": "Rejoindre la liste {code} ?",
       "landingInviteBody": "Cela vous retirera de votre liste actuelle.",
-      "landingInviteJoin": "Rejoindre la liste",
+      "landingInviteJoin": "Rejoindre",
       "landingInviteCancel": "Annuler"
     },
     "pt": {
@@ -422,9 +422,9 @@
       "landingJoinExisting": "Entrar em lista existente",
       "landingCreateNew": "Criar nova lista",
       "landingSharePlaceholder": "Código de partilha",
-      "landingInviteTitle": "Você foi convidado(a) para entrar na lista {code}",
+      "landingInviteTitle": "Entrar na lista {code}?",
       "landingInviteBody": "Isso o(a) removerá da sua lista atual.",
-      "landingInviteJoin": "Entrar na lista",
+      "landingInviteJoin": "Entrar",
       "landingInviteCancel": "Cancelar"
     },
     "it": {
@@ -459,9 +459,9 @@
       "landingJoinExisting": "Unisciti a lista esistente",
       "landingCreateNew": "Crea nuova lista",
       "landingSharePlaceholder": "Codice di condivisione",
-      "landingInviteTitle": "Sei stato invitato a unirti alla lista {code}",
+      "landingInviteTitle": "Unirti alla lista {code}?",
       "landingInviteBody": "Questo ti rimuoverà dalla tua lista attuale.",
-      "landingInviteJoin": "Unisciti alla lista",
+      "landingInviteJoin": "Unisciti",
       "landingInviteCancel": "Annulla"
     }
   }

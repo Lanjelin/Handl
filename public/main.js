@@ -85,9 +85,9 @@ const FALLBACK_TRANSLATIONS = {
     landingJoinExisting: 'Join existing list',
     landingCreateNew: 'Create new list',
     landingSharePlaceholder: 'Share code',
-    landingInviteTitle: "You've been invited to join list {code}",
-    landingInviteBody: 'This will remove you from your current list.',
-    landingInviteJoin: 'Join list',
+    landingInviteTitle: 'Join list {code}?',
+    landingInviteBody: 'Joining will remove you from your current list.',
+    landingInviteJoin: 'Join',
     landingInviteCancel: 'Cancel'
   }
 };
