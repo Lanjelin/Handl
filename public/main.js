@@ -312,38 +312,62 @@ function parseEditorLines(value) {
 }
 
 function reconcileLines(currentItems, nextLines) {
-  const used = new Set();
   const nextItems = [];
+  let currentIndex = 0;
+  let nextIndex = 0;
 
-  for (let index = 0; index < nextLines.length; index += 1) {
-    const text = nextLines[index];
-    const existingAtIndex = currentItems[index];
-    if (existingAtIndex && !used.has(existingAtIndex.id)) {
-      used.add(existingAtIndex.id);
+  while (currentIndex < currentItems.length && nextIndex < nextLines.length) {
+    const currentItem = currentItems[currentIndex];
+    const nextText = nextLines[nextIndex];
+
+    if (currentItem.text === nextText) {
       nextItems.push({
-        id: existingAtIndex.id,
-        text,
-        checked: Boolean(existingAtIndex.checked)
+        id: currentItem.id,
+        text: nextText,
+        checked: Boolean(currentItem.checked)
       });
+      currentIndex += 1;
+      nextIndex += 1;
       continue;
     }
 
-    const reusable = currentItems.find((item) => !used.has(item.id) && item.text === text);
-    if (reusable) {
-      used.add(reusable.id);
+    const nextCurrent = currentItems[currentIndex + 1];
+    if (nextCurrent && nextCurrent.text === nextText) {
+      currentIndex += 1;
+      continue;
+    }
+
+    const nextTextLater = nextLines[nextIndex + 1];
+    if (nextTextLater && nextTextLater === currentItem.text) {
       nextItems.push({
-        id: reusable.id,
-        text,
-        checked: Boolean(reusable.checked)
+        id: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
+        text: nextText,
+        checked: false
       });
+      nextIndex += 1;
       continue;
     }
 
     nextItems.push({
+      id: currentItem.id,
+      text: nextText,
+      checked: Boolean(currentItem.checked)
+    });
+    currentIndex += 1;
+    nextIndex += 1;
+  }
+
+  while (nextIndex < nextLines.length) {
+    nextItems.push({
       id: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
-      text,
+      text: nextLines[nextIndex],
       checked: false
     });
+    nextIndex += 1;
+  }
+
+  while (currentIndex < currentItems.length) {
+    currentIndex += 1;
   }
 
   return nextItems;
