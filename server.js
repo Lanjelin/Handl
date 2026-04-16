@@ -572,9 +572,11 @@ function buildMetrics() {
     recentRequests[entry.pathKey] = (recentRequests[entry.pathKey] || 0) + 1;
   }
   const activeWebsocketClients = Array.from(listClients.values()).reduce((sum, clients) => sum + clients.size, 0);
+  const totalLists = db.prepare('SELECT COUNT(*) AS count FROM lists').get().count;
   return {
     now,
     windowMs: METRICS_WINDOW_MS,
+    totalLists,
     cachedLists: stateCache.size,
     trackedLists: listClients.size,
     activeWebsocketClients,
@@ -586,6 +588,24 @@ function buildMetrics() {
     },
     recentRequests
   };
+}
+
+function logStartupSummary() {
+  console.log('');
+  console.info('server');
+  console.info(`  port=${PORT}`);
+  console.info(`  dataDir=${DATA_DIR}`);
+  console.info(`  dbFile=${DB_FILE}`);
+  console.log('');
+  console.info('config');
+  console.info(`  prune=${PRUNE_AFTER_MS}`);
+  console.info(`  persist=${PERSIST_DEBOUNCE_MS}/${PERSIST_MAX_DELAY_MS}`);
+  console.info(`  broadcast=${BROADCAST_DEBOUNCE_MS}`);
+  console.info(`  compact=${COMPACT_IDLE_DELAY_MS}`);
+  console.info(`  heartbeat=${HEARTBEAT_MS}`);
+  console.info(`  metricsWindow=${METRICS_WINDOW_MS}`);
+  console.info(`  debugMetrics=${DEBUG_METRICS ? 'on' : 'off'}`);
+  console.log('');
 }
 
 function getString(value) {
@@ -670,7 +690,8 @@ function bytesToBase64(bytes) {
   return Buffer.from(binary, 'binary').toString('base64');
 }
 
-console.log('Starting Handl with SQLite persistence...');
+console.log('Starting Handl');
+logStartupSummary();
 server.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
 });
