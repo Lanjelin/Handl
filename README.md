@@ -1,4 +1,4 @@
-![Handl](https://raw.githubusercontent.com/Lanjelin/Handl/refs/heads/main/public/icon.svg)
+<img src="https://raw.githubusercontent.com/Lanjelin/Handl/refs/heads/main/public/icon.svg" alt="Handl" width="96" />
 
 # Handl
 
