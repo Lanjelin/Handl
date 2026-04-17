@@ -573,6 +573,7 @@ function buildMetrics() {
   }
   const activeWebsocketClients = Array.from(listClients.values()).reduce((sum, clients) => sum + clients.size, 0);
   const totalLists = db.prepare('SELECT COUNT(*) AS count FROM lists').get().count;
+  const memory = process.memoryUsage();
   return {
     now,
     windowMs: METRICS_WINDOW_MS,
@@ -580,6 +581,13 @@ function buildMetrics() {
     cachedLists: stateCache.size,
     trackedLists: listClients.size,
     activeWebsocketClients,
+    memory: {
+      rss: memory.rss,
+      heapUsed: memory.heapUsed,
+      heapTotal: memory.heapTotal,
+      external: memory.external,
+      arrayBuffers: memory.arrayBuffers
+    },
     timers: {
       persist: persistTimers.size,
       forcePersist: forcePersistTimers.size,
