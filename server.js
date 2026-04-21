@@ -82,6 +82,9 @@ const forcePersistTimers = new Map();
 const broadcastTimers = new Map();
 const compactTimers = new Map();
 const requestEvents = [];
+let pruneLoopTimer = null;
+let heartbeatLoopTimer = null;
+let shutdownInProgress = false;
 
 ensureListSchema();
 startHeartbeatLoop();
@@ -560,7 +563,7 @@ function compactList(listId) {
 }
 
 function startPruneLoop() {
-  setInterval(() => {
+  pruneLoopTimer = setInterval(() => {
     const cutoff = Date.now() - PRUNE_AFTER_MS;
     const rows = db.prepare('SELECT id FROM lists WHERE last_access < ?').all(cutoff);
     db.prepare('DELETE FROM lists WHERE last_access < ?').run(cutoff);
@@ -581,7 +584,7 @@ function startPruneLoop() {
 }
 
 function startHeartbeatLoop() {
-  setInterval(() => {
+  heartbeatLoopTimer = setInterval(() => {
     for (const listId of listClients.keys()) {
       broadcastHeartbeat(listId);
     }
@@ -784,3 +787,67 @@ logStartupSummary();
 server.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
 });
+
+process.once('SIGTERM', () => {
+  shutdown('SIGTERM');
+});
+
+process.once('SIGINT', () => {
+  shutdown('SIGINT');
+});
+
+function shutdown(signal) {
+  if (shutdownInProgress) return;
+  shutdownInProgress = true;
+  console.log('');
+  console.info('server');
+  console.info(`  shutdown=${signal}`);
+  console.log('');
+
+  if (pruneLoopTimer) {
+    clearInterval(pruneLoopTimer);
+    pruneLoopTimer = null;
+  }
+  if (heartbeatLoopTimer) {
+    clearInterval(heartbeatLoopTimer);
+    heartbeatLoopTimer = null;
+  }
+  for (const timer of persistTimers.values()) clearTimeout(timer);
+  for (const timer of forcePersistTimers.values()) clearTimeout(timer);
+  for (const timer of broadcastTimers.values()) clearTimeout(timer);
+  for (const timer of compactTimers.values()) clearTimeout(timer);
+  persistTimers.clear();
+  forcePersistTimers.clear();
+  broadcastTimers.clear();
+  compactTimers.clear();
+
+  for (const clients of listClients.values()) {
+    for (const client of clients) {
+      try {
+        client.ws.close();
+      } catch (error) {
+        // ignore
+      }
+    }
+  }
+
+  const forceExit = setTimeout(() => {
+    try {
+      db.close();
+    } catch (error) {
+      // ignore
+    }
+    process.exit(0);
+  }, 5000);
+  forceExit.unref?.();
+
+  server.close(() => {
+    try {
+      db.close();
+    } catch (error) {
+      // ignore
+    }
+    clearTimeout(forceExit);
+    process.exit(0);
+  });
+}
