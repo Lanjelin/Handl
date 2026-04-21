@@ -5,7 +5,7 @@ import {createServer} from 'http';
 import {WebSocketServer, WebSocket} from 'ws';
 import {existsSync, mkdirSync, readFileSync} from 'fs';
 import Database from 'better-sqlite3';
-import {randomBytes, randomUUID} from 'crypto';
+import {randomBytes, randomUUID, timingSafeEqual} from 'crypto';
 import * as Automerge from '@automerge/automerge';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -22,6 +22,7 @@ loadEnvFile(path.join(BOOT_DATA_DIR, '.env'));
 // - COMPACT_IDLE_DELAY_MS delays doc compaction until the list has been idle.
 // - HEARTBEAT_MS sends a tiny websocket heartbeat to detect stale connections.
 // - SHARE_CODE_LENGTH / SHARE_CODE_ALPHABET control restore code generation.
+// - PASSWORD enables a simple login gate when set.
 // - DEBUG_METRICS enables lightweight client-side connection timing logs.
 // - METRICS_WINDOW_MS controls the rolling request window exposed by /metrics.
 const PORT = readEnvInt('PORT', 3000);
@@ -39,9 +40,15 @@ const METRICS_WINDOW_MS = readEnvInt('METRICS_WINDOW_MS', 15 * 60 * 1000);
 const SHARE_CODE_ALPHABET = process.env.SHARE_CODE_ALPHABET || 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SHARE_CODE_LENGTH = readEnvInt('SHARE_CODE_LENGTH', 8);
 const DEBUG_METRICS = readEnvBool('DEBUG_METRICS', false);
+const AUTH_PASSWORD = process.env.PASSWORD || '';
+const AUTH_ENABLED = AUTH_PASSWORD.length > 0;
+const AUTH_COOKIE = 'handl-auth';
+
+const authTokens = new Set();
 
 const THEMES = JSON.parse(readFileSync(path.join(__dirname, 'themes.json'), 'utf8'));
 const TRANSLATIONS = JSON.parse(readFileSync(path.join(__dirname, 'translations.json'), 'utf8'));
+const INDEX_HTML = readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
 
 mkdirSync(DATA_DIR, { recursive: true });
 const db = new Database(DB_FILE);
@@ -80,12 +87,14 @@ ensureListSchema();
 startHeartbeatLoop();
 
 app.get('/session', (req, res) => {
+  if (!assertAuthenticated(req, res)) return;
   const providedToken = getString(req.query.token);
   const session = getSession(providedToken);
   res.json(formatSessionResponse(session));
 });
 
 app.post('/restore', (req, res) => {
+  if (!assertAuthenticated(req, res)) return;
   const code = (req.body?.code ?? '').toString().trim().toUpperCase();
   const providedToken = getString(req.body?.token ?? req.query.token);
   if (!code) {
@@ -101,6 +110,7 @@ app.post('/restore', (req, res) => {
 });
 
 app.post('/join', (req, res) => {
+  if (!assertAuthenticated(req, res)) return;
   const code = (req.body?.code ?? req.body?.shareCode ?? req.body?.listId ?? '').toString().trim().toUpperCase();
   const providedToken = getString(req.body?.token ?? req.query.token);
   if (!code) {
@@ -115,10 +125,35 @@ app.post('/join', (req, res) => {
   }
 });
 
+app.get('/auth/status', (req, res) => res.json({ authRequired: AUTH_ENABLED, authenticated: isAuthenticated(req) }));
+
+app.post('/auth', (req, res) => {
+  if (!AUTH_ENABLED) {
+    res.json({ authRequired: false, authenticated: true });
+    return;
+  }
+  const password = (req.body?.password ?? '').toString();
+  if (!timingSafeEquals(password, AUTH_PASSWORD)) {
+    res.status(401).json({ error: 'invalid password' });
+    return;
+  }
+  const token = randomBytes(24).toString('hex');
+  authTokens.add(token);
+  setAuthCookie(res, token);
+  res.json({ authRequired: true, authenticated: true });
+});
+
 app.get('/themes.json', (req, res) => res.json(THEMES));
 app.get('/translations.json', (req, res) => res.json(TRANSLATIONS));
-app.get('/config.json', (req, res) => res.json({ title: 'Handl', debugMetrics: DEBUG_METRICS }));
-app.get('/metrics', (req, res) => res.json(buildMetrics()));
+app.get('/config.json', (req, res) => res.json({ title: 'Handl', debugMetrics: DEBUG_METRICS, authRequired: AUTH_ENABLED }));
+app.get('/metrics', (req, res) => {
+  if (!assertAuthenticated(req, res)) return;
+  res.json(buildMetrics());
+});
+app.get(['/', '/index.html'], (req, res) => {
+  res.type('html');
+  res.send(renderIndexHtml(!isAuthenticated(req)));
+});
 app.use('/vendor/automerge', express.static(AUTOMERGE_MJS_DIR, { maxAge: 0 }));
 app.use(express.static(PUBLIC_DIR, { maxAge: 0 }));
 
@@ -127,6 +162,10 @@ const wss = new WebSocketServer({ noServer: true });
 
 server.on('upgrade', (req, socket, head) => {
   try {
+    if (!isAuthenticated(req)) {
+      socket.destroy();
+      return;
+    }
     const url = new URL(req.url, `http://${req.headers.host}`);
     const token = getString(url.searchParams.get('token'));
     const mapping = getTokenMapping(token);
@@ -606,6 +645,7 @@ function logStartupSummary() {
   console.info(`  dbFile=${DB_FILE}`);
   console.log('');
   console.info('config');
+  console.info(`  auth=${AUTH_ENABLED ? 'on' : 'off'}`);
   console.info(`  prune=${PRUNE_AFTER_MS}`);
   console.info(`  persist=${PERSIST_DEBOUNCE_MS}/${PERSIST_MAX_DELAY_MS}`);
   console.info(`  broadcast=${BROADCAST_DEBOUNCE_MS}`);
@@ -619,6 +659,47 @@ function logStartupSummary() {
 function getString(value) {
   if (!value) return null;
   return value.toString();
+}
+
+function isAuthenticated(req) {
+  if (!AUTH_ENABLED) return true;
+  const token = getCookieValue(req.headers.cookie || '', AUTH_COOKIE);
+  return Boolean(token && authTokens.has(token));
+}
+
+function assertAuthenticated(req, res) {
+  if (isAuthenticated(req)) return true;
+  res.status(401).json({ error: 'authentication required' });
+  return false;
+}
+
+function setAuthCookie(res, token) {
+  const parts = [
+    `${AUTH_COOKIE}=${token}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    'Max-Age=2592000'
+  ];
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+
+function getCookieValue(cookieHeader, name) {
+  if (!cookieHeader) return null;
+  const prefix = `${name}=`;
+  const part = cookieHeader.split(';').map((chunk) => chunk.trim()).find((chunk) => chunk.startsWith(prefix));
+  return part ? decodeURIComponent(part.slice(prefix.length)) : null;
+}
+
+function timingSafeEquals(left, right) {
+  const leftBuf = Buffer.from(left);
+  const rightBuf = Buffer.from(right);
+  if (leftBuf.length !== rightBuf.length) return false;
+  return timingSafeEqual(leftBuf, rightBuf);
+}
+
+function renderIndexHtml(authLocked = false) {
+  return authLocked ? INDEX_HTML.replace('<body>', '<body class="auth-locked">') : INDEX_HTML;
 }
 
 function readEnvInt(name, fallback) {

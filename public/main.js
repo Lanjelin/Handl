@@ -14,6 +14,11 @@ const titleHeading = document.querySelector('.pane-title h2');
 const settingsButton = document.getElementById('open-settings');
 const settingsDialog = document.getElementById('settings-dialog');
 const confirmDialog = document.getElementById('confirm-dialog');
+const loginScreen = document.getElementById('login-screen');
+const loginForm = document.getElementById('login-form');
+const loginPasswordInput = document.getElementById('login-password');
+const loginSubmitButton = document.getElementById('login-submit');
+const loginError = document.getElementById('login-error');
 const settingsSort = document.getElementById('sort-checked');
 const removeCheckedButton = document.getElementById('remove-checked');
 const closeSettingsButton = document.getElementById('close-settings');
@@ -132,6 +137,9 @@ let landingMode = 'welcome';
 let pendingJoinCode = '';
 let copyFeedbackTimeout = null;
 let editorLineMap = [];
+let authRequired = false;
+let bootstrapComplete = false;
+let loginInProgress = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
   editor.addEventListener('input', handleEditorInput);
@@ -141,6 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   removeCheckedButton.addEventListener('click', removeCheckedItems);
   confirmRemoveButton?.addEventListener('click', confirmRemoveCheckedItems);
   confirmCancelButton?.addEventListener('click', closeConfirmDialog);
+  loginForm?.addEventListener('submit', handleLoginSubmit);
   toggleModeButton.addEventListener('click', toggleMode);
   copyShareCodeButton?.addEventListener('click', copyListIdToClipboard);
   shareListButton?.addEventListener('click', shareListLink);
@@ -213,6 +222,7 @@ async function bootstrapApp() {
     debugMark('automerge-ready');
     hydrateBootState();
 
+    await fetchConfig();
     await fetchThemeCatalog();
     await fetchTranslationCatalog();
 
@@ -222,15 +232,28 @@ async function bootstrapApp() {
     setStatus('idle');
     updateNativeShareAvailability();
 
-    doc = createInitialDoc();
-    syncState = Automerge.initSyncState();
-    appReady = true;
+    if (authRequired) {
+      const status = await fetchAuthStatus();
+      if (!status?.authenticated) {
+        showLoginScreen();
+        return;
+      }
+    }
 
-    await fetchConfig();
-    await initializeSession();
+    await finishBootstrap();
   } finally {
     // no-op
   }
+}
+
+async function finishBootstrap() {
+  if (bootstrapComplete) return;
+  doc = createInitialDoc();
+  syncState = Automerge.initSyncState();
+  appReady = true;
+
+  await initializeSession();
+  bootstrapComplete = true;
 }
 
 function createInitialDoc() {
@@ -516,9 +539,11 @@ async function fetchConfig() {
     if (!res.ok) throw new Error('config unavailable');
     const json = await res.json();
     debugMetricsEnabled = Boolean(json?.debugMetrics);
+    authRequired = Boolean(json?.authRequired);
     debugMetric('config-loaded', {
       totalBootstrapMs: elapsedMs(bootstrapStartedAt),
-      debugMetrics: debugMetricsEnabled
+      debugMetrics: debugMetricsEnabled,
+      authRequired
     });
     if (json?.title) {
       document.title = json.title;
@@ -527,6 +552,88 @@ async function fetchConfig() {
   } catch (error) {
     console.warn('Failed to load config', error);
   }
+}
+
+async function fetchAuthStatus() {
+  try {
+    const res = await fetch('/auth/status', { cache: 'no-store' });
+    if (!res.ok) return { authRequired, authenticated: false };
+    return await res.json();
+  } catch (error) {
+    console.warn('Failed to load auth status', error);
+    return { authRequired, authenticated: false };
+  }
+}
+
+async function handleLoginSubmit(event) {
+  event.preventDefault();
+  if (loginInProgress) return;
+  loginInProgress = true;
+  if (loginSubmitButton) {
+    loginSubmitButton.disabled = true;
+  }
+  const password = (loginPasswordInput?.value ?? '').trim();
+  try {
+    await authenticatePassword(password);
+    hideLoginError();
+    hideLoginScreen();
+    await finishBootstrap();
+  } catch (error) {
+    console.warn('Login failed', error);
+    showLoginError();
+    loginPasswordInput?.focus();
+    loginPasswordInput?.select?.();
+  } finally {
+    loginInProgress = false;
+    if (loginSubmitButton) {
+      loginSubmitButton.disabled = false;
+    }
+  }
+}
+
+async function authenticatePassword(password) {
+  const res = await fetch('/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  });
+  if (!res.ok) {
+    throw new Error('invalid password');
+  }
+  return res.json();
+}
+
+function showLoginScreen() {
+  document.body.classList.add('auth-locked');
+  if (loginScreen) {
+    loginScreen.classList.remove('hidden');
+    loginScreen.setAttribute('aria-hidden', 'false');
+  }
+  if (loginPasswordInput) {
+    loginPasswordInput.value = '';
+  }
+  hideLoginError();
+  if (loginPasswordInput) {
+    requestAnimationFrame(() => loginPasswordInput.focus());
+  }
+}
+
+function hideLoginScreen() {
+  document.body.classList.remove('auth-locked');
+  if (loginScreen) {
+    loginScreen.classList.add('hidden');
+    loginScreen.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function showLoginError() {
+  if (!loginError) return;
+  loginError.classList.remove('hidden');
+}
+
+function hideLoginError() {
+  if (!loginError) return;
+  loginError.classList.add('hidden');
 }
 
 function autoResizeEditor() {
@@ -1312,6 +1419,9 @@ function applyTranslations() {
   const landingInviteJoinLabel = document.querySelector('[data-i18n="landingInviteJoin"]');
   const landingInviteCancelLabel = document.querySelector('[data-i18n="landingInviteCancel"]');
   const landingInviteBody = document.querySelector('[data-i18n="landingInviteBody"]');
+  const loginHeadingLabel = document.querySelector('[data-i18n="loginHeading"]');
+  const loginSubmitLabel = document.querySelector('[data-i18n="loginSubmit"]');
+  const loginInvalidLabel = document.querySelector('[data-i18n="loginInvalid"]');
   const copyFeedbackLabel = document.querySelector('[data-i18n="copyFeedback"]');
 
   if (header) header.textContent = locale.settingsTitle;
@@ -1334,6 +1444,11 @@ function applyTranslations() {
   if (landingInviteJoinLabel) landingInviteJoinLabel.textContent = locale.landingInviteJoin;
   if (landingInviteCancelLabel) landingInviteCancelLabel.textContent = locale.landingInviteCancel;
   if (landingInviteBody) landingInviteBody.textContent = locale.landingInviteBody;
+  if (loginHeadingLabel) loginHeadingLabel.textContent = locale.loginHeading;
+  if (loginPasswordInput) loginPasswordInput.placeholder = locale.loginPasswordLabel;
+  if (loginPasswordInput) loginPasswordInput.setAttribute('aria-label', locale.loginPasswordLabel);
+  if (loginSubmitLabel) loginSubmitLabel.textContent = locale.loginSubmit;
+  if (loginInvalidLabel) loginInvalidLabel.textContent = locale.loginInvalid;
   if (copyFeedbackLabel) copyFeedbackLabel.textContent = locale.copyFeedback;
   const confirmTitleLabel = document.querySelector('[data-i18n="removeCheckedConfirmTitle"]');
   const confirmBodyLabel = document.querySelector('[data-i18n="removeCheckedConfirmBody"]');

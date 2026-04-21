@@ -66,6 +66,20 @@ body.landing-open {
   justify-content: center;
 }
 
+body.auth-locked {
+  align-items: center;
+  justify-content: center;
+}
+
+body.auth-locked .app-shell,
+body.auth-locked .landing-screen {
+  display: none;
+}
+
+body.auth-locked .login-screen.hidden {
+  display: flex !important;
+}
+
 body.landing-open .app-shell {
   display: none;
 }
@@ -84,6 +98,56 @@ body.landing-open .app-shell {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.login-screen {
+  width: min(420px, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.35rem 1.2rem;
+  border-radius: 1.2rem;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.login-field {
+  width: 100%;
+}
+
+.login-field input {
+  width: 100%;
+  border-radius: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  font-weight: 600;
+  background: var(--checkbox-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.login-error {
+  margin: 0;
+  color: var(--status-disconnected-fg);
+  font-size: 0.92rem;
+}
+
+.login-form button {
+  min-height: 2.6rem;
 }
 
 .landing-card {
@@ -670,6 +734,13 @@ button.danger {
     width: 36px;
     height: 36px;
     min-width: 36px;
+  }
+
+  .login-form button {
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    min-height: 2.6rem;
   }
 
   .presence-indicator {

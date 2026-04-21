@@ -73,6 +73,7 @@ npm start
 
 Handl reads optional environment variables from `./data/.env` when self-hosted.
 You can also set them directly in the container or shell environment.
+Set `PASSWORD` to require a simple login before the app opens.
 
 Common values:
 - `PORT`
@@ -89,6 +90,7 @@ Common values:
 - `SHARE_CODE_LENGTH`
 - `SHARE_CODE_ALPHABET`
 - `DEBUG_METRICS`
+- `PASSWORD`
 
 ## Notes
 

@@ -105,6 +105,12 @@
                 restore.placeholder = locale.listIdPlaceholder;
               }
 
+              const loginPassword = document.getElementById('login-password');
+              if (loginPassword && locale.loginPasswordLabel) {
+                loginPassword.placeholder = locale.loginPasswordLabel;
+                loginPassword.setAttribute('aria-label', locale.loginPasswordLabel);
+              }
+
               const landingShareCode = document.getElementById('landing-share-code');
               if (landingShareCode && locale.landingSharePlaceholder) {
                 landingShareCode.placeholder = locale.landingSharePlaceholder;
@@ -131,6 +137,27 @@
     <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
   </head>
   <body>
+    <div id="login-screen" class="login-screen hidden" aria-hidden="true">
+      <section class="login-card">
+        <div class="landing-copy">
+          <h1 data-i18n="loginHeading">Unlock</h1>
+        </div>
+        <form id="login-form" class="login-form">
+          <label class="setting stacked login-field">
+            <input
+              id="login-password"
+              type="password"
+              autocomplete="current-password"
+              aria-label="Password"
+              placeholder="Password"
+            />
+          </label>
+          <p id="login-error" class="login-error hidden" data-i18n="loginInvalid">Incorrect password.</p>
+          <button id="login-submit" type="submit" data-i18n="loginSubmit">Enter</button>
+        </form>
+      </section>
+    </div>
+
     <div id="landing-screen" class="landing-screen hidden" aria-hidden="true">
       <section class="landing-card">
         <div class="landing-copy">
