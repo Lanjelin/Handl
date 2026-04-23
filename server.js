@@ -1,5 +1,5 @@
 import path from 'path';
-import {fileURLToPath} from 'url';
+import {fileURLToPath, pathToFileURL} from 'url';
 import express from 'express';
 import {createServer} from 'http';
 import {WebSocketServer, WebSocket} from 'ws';
@@ -85,6 +85,8 @@ const requestEvents = [];
 let pruneLoopTimer = null;
 let heartbeatLoopTimer = null;
 let shutdownInProgress = false;
+let shutdownPromise = null;
+const isMainModule = Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 ensureListSchema();
 startHeartbeatLoop();
@@ -135,13 +137,11 @@ app.post('/auth', (req, res) => {
     res.json({ authRequired: false, authenticated: true });
     return;
   }
-  const password = (req.body?.password ?? '').toString();
-  if (!timingSafeEquals(password, AUTH_PASSWORD)) {
+  const token = authenticatePassword((req.body?.password ?? '').toString());
+  if (!token) {
     res.status(401).json({ error: 'invalid password' });
     return;
   }
-  const token = randomBytes(24).toString('hex');
-  authTokens.add(token);
   setAuthCookie(res, token);
   res.json({ authRequired: true, authenticated: true });
 });
@@ -670,6 +670,16 @@ function isAuthenticated(req) {
   return Boolean(token && authTokens.has(token));
 }
 
+function authenticatePassword(password) {
+  if (!AUTH_ENABLED) return randomBytes(24).toString('hex');
+  if (!timingSafeEquals(password, AUTH_PASSWORD)) {
+    return null;
+  }
+  const token = randomBytes(24).toString('hex');
+  authTokens.add(token);
+  return token;
+}
+
 function assertAuthenticated(req, res) {
   if (isAuthenticated(req)) return true;
   res.status(401).json({ error: 'authentication required' });
@@ -782,72 +792,120 @@ function bytesToBase64(bytes) {
   return Buffer.from(binary, 'binary').toString('base64');
 }
 
-console.log('Starting Handl');
-logStartupSummary();
-server.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
-});
+if (isMainModule) {
+  console.log('Starting Handl');
+  logStartupSummary();
+  process.once('SIGTERM', () => {
+    shutdown('SIGTERM');
+  });
+  process.once('SIGINT', () => {
+    shutdown('SIGINT');
+  });
+  startServer().then((port) => {
+    console.log(`Server listening on http://localhost:${port}`);
+  });
+}
 
-process.once('SIGTERM', () => {
-  shutdown('SIGTERM');
-});
-
-process.once('SIGINT', () => {
-  shutdown('SIGINT');
-});
+export {
+  app,
+  server,
+  startServer,
+  closeServer,
+  authenticatePassword,
+  restoreWithCode,
+  createInitialDoc,
+  snapshotFromDoc,
+  docFromSnapshot
+};
 
 function shutdown(signal) {
-  if (shutdownInProgress) return;
+  closeServer({ signal, log: true }).finally(() => process.exit(0));
+}
+
+async function closeServer({ signal = 'manual', log = true } = {}) {
+  if (shutdownPromise) return shutdownPromise;
   shutdownInProgress = true;
-  console.log('');
-  console.info('server');
-  console.info(`  shutdown=${signal}`);
-  console.log('');
+  shutdownPromise = new Promise((resolve) => {
+    if (log) {
+      console.log('');
+      console.info('server');
+      console.info(`  shutdown=${signal}`);
+      console.log('');
+    }
 
-  if (pruneLoopTimer) {
-    clearInterval(pruneLoopTimer);
-    pruneLoopTimer = null;
-  }
-  if (heartbeatLoopTimer) {
-    clearInterval(heartbeatLoopTimer);
-    heartbeatLoopTimer = null;
-  }
-  for (const timer of persistTimers.values()) clearTimeout(timer);
-  for (const timer of forcePersistTimers.values()) clearTimeout(timer);
-  for (const timer of broadcastTimers.values()) clearTimeout(timer);
-  for (const timer of compactTimers.values()) clearTimeout(timer);
-  persistTimers.clear();
-  forcePersistTimers.clear();
-  broadcastTimers.clear();
-  compactTimers.clear();
+    if (pruneLoopTimer) {
+      clearInterval(pruneLoopTimer);
+      pruneLoopTimer = null;
+    }
+    if (heartbeatLoopTimer) {
+      clearInterval(heartbeatLoopTimer);
+      heartbeatLoopTimer = null;
+    }
+    for (const timer of persistTimers.values()) clearTimeout(timer);
+    for (const timer of forcePersistTimers.values()) clearTimeout(timer);
+    for (const timer of broadcastTimers.values()) clearTimeout(timer);
+    for (const timer of compactTimers.values()) clearTimeout(timer);
+    persistTimers.clear();
+    forcePersistTimers.clear();
+    broadcastTimers.clear();
+    compactTimers.clear();
 
-  for (const clients of listClients.values()) {
-    for (const client of clients) {
+    for (const clients of listClients.values()) {
+      for (const client of clients) {
+        try {
+          client.ws.close();
+        } catch (error) {
+          // ignore
+        }
+      }
+    }
+
+    if (!server.listening) {
       try {
-        client.ws.close();
+        db.close();
       } catch (error) {
         // ignore
       }
+      resolve();
+      return;
     }
-  }
 
-  const forceExit = setTimeout(() => {
-    try {
-      db.close();
-    } catch (error) {
-      // ignore
-    }
-    process.exit(0);
-  }, 5000);
-  forceExit.unref?.();
+    const forceExit = setTimeout(() => {
+      try {
+        db.close();
+      } catch (error) {
+        // ignore
+      }
+      resolve();
+    }, 5000);
+    forceExit.unref?.();
 
-  server.close(() => {
+    server.close(() => {
+      try {
+        db.close();
+      } catch (error) {
+        // ignore
+      }
+      clearTimeout(forceExit);
+      resolve();
+    });
+  });
+  return shutdownPromise;
+}
+
+function startServer(port = PORT, { host } = {}) {
+  return new Promise((resolve, reject) => {
     try {
-      db.close();
+      const onListen = () => {
+        resolve(server.address().port);
+      };
+      if (host) {
+        server.listen(port, host, onListen);
+      } else {
+        server.listen(port, onListen);
+      }
     } catch (error) {
-      // ignore
+      reject(error);
     }
-    clearTimeout(forceExit);
-    process.exit(0);
   });
 }
