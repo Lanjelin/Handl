@@ -5,16 +5,18 @@
 Handl is a shared shopping list for families and couples.
 
 It is:
+- installable as a PWA
 - fast to open on phones
 - simple to share
-- collaborative for a few people at a time
-- online-first, with a small local cache for quicker reopen on the same device
+- collaborative with live updates
+- online-first, with a small local cache for settings
 
 It is not:
 - an offline-first note app
 - a task manager
 - a general-purpose document editor
 - a multi-user account system
+- a solution to all of your problems
 
 ## Try it
 
@@ -29,9 +31,6 @@ It is not:
    - check items off
    - add new items or edit the list
    - remove checked items when done shopping
-
-On mobile, the share button opens the native share sheet where supported.
-On desktop, copy the list code and send it however you want.
 
 ## Self-host
 
@@ -71,29 +70,12 @@ npm start
 
 ## Configuration
 
-Handl reads optional environment variables from `./data/.env` when self-hosted.
-You can also set them directly in the container or shell environment.
-Set `PASSWORD` to require a simple login before the app opens.
-
-Common values:
-- `PORT`
-- `DATA_DIR`
-- `DB_FILE`
-- `PUBLIC_DIR`
-- `PRUNE_AFTER_MS`
-- `PERSIST_DEBOUNCE_MS`
-- `PERSIST_MAX_DELAY_MS`
-- `BROADCAST_DEBOUNCE_MS`
-- `COMPACT_IDLE_DELAY_MS`
-- `HEARTBEAT_MS`
-- `METRICS_WINDOW_MS`
-- `SHARE_CODE_LENGTH`
-- `SHARE_CODE_ALPHABET`
-- `DEBUG_METRICS`
-- `PASSWORD`
+Handl reads optional environment variables from `./data/.env` when self-hosted.  
+You can also set them directly in the container or shell environment.  
+See `.env.example` for the full set of variables.  
+For private instances, you can set `PASSWORD` to require a simple login before the app opens.  
 
 ## Notes
 
 - Data is stored in SQLite under `./data`.
 - `/metrics` exposes a small operational snapshot for debugging.
-- If you change the container port, update `PORT` accordingly.
