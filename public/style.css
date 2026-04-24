@@ -570,26 +570,26 @@ button.danger {
 .settings-body {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-  margin-top: 1rem;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
 }
 
 .setting {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.7rem;
+  gap: 0.55rem;
   font-weight: 600;
 }
 
 .setting.stacked {
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.35rem;
+  gap: 0.28rem;
 }
 
 .setting.keep-bottom {
-  margin-top: 0.4rem;
+  margin-top: 0.2rem;
 }
 
 .setting select {
@@ -603,7 +603,7 @@ button.danger {
 
 .share-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
   align-items: center;
   flex-wrap: nowrap;
   flex: 1 1 auto;
@@ -614,7 +614,7 @@ button.danger {
 .share-actions input[id='restore-code-input'] {
   flex: 1;
   border-radius: 0.75rem;
-  padding: 0.55rem 0.75rem;
+  padding: 0.5rem 0.65rem;
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -649,10 +649,10 @@ button.danger {
 }
 
 .share-actions button {
-  padding: 0.45rem 0.9rem;
+  padding: 0.4rem 0.75rem;
   font-size: 0.85rem;
   flex: 1 1 0;
-  min-width: 62px;
+  min-width: 58px;
 }
 
 .share-copy-button {
@@ -735,7 +735,7 @@ button.danger {
 }
 
 .settings-actions {
-  margin-top: 1.1rem;
+  margin-top: 0.9rem;
   display: flex;
 }
 
@@ -747,7 +747,7 @@ button.danger {
   width: 100%;
   height: 1px;
   background: rgba(148, 163, 184, 0.4);
-  margin: 1rem 0 0.5rem;
+  margin: 0.85rem 0 0.4rem;
 }
 
 .status-indicator {
