@@ -19,6 +19,7 @@ const loginForm = document.getElementById('login-form');
 const loginPasswordInput = document.getElementById('login-password');
 const loginSubmitButton = document.getElementById('login-submit');
 const loginError = document.getElementById('login-error');
+const settingsDeleteButton = document.getElementById('show-delete-button');
 const settingsSort = document.getElementById('sort-checked');
 const removeCheckedButton = document.getElementById('remove-checked');
 const closeSettingsButton = document.getElementById('close-settings');
@@ -28,6 +29,7 @@ const languageSelect = document.getElementById('language-select');
 const shareCodeInput = document.getElementById('settings-share-code');
 const copyShareCodeButton = document.getElementById('copy-share-code-button');
 const shareListButton = document.getElementById('share-list-button');
+const deleteCheckedButton = document.getElementById('delete-checked-button');
 const restoreCodeInput = document.getElementById('restore-code-input');
 const restoreCodeButton = document.getElementById('restore-code-button');
 const copyFeedback = document.getElementById('copy-feedback');
@@ -45,7 +47,7 @@ const landingTitle = document.querySelector('[data-i18n="landingTitle"]');
 const landingBody = document.querySelector('[data-i18n="landingBody"]');
 const themeColorMeta = document.getElementById('theme-color-meta');
 
-const DEFAULT_SETTINGS = { sortChecked: false, colorScheme: 'default', language: 'en' };
+const DEFAULT_SETTINGS = { showDeleteButton: false, sortChecked: false, colorScheme: 'default', language: 'en' };
 const LOCAL_SETTINGS_PREFIX = 'handl-settings';
 const LOCAL_UI_PREFIX = 'handl-ui-cache';
 const LOCAL_TOKEN_KEY = 'handl-session-token';
@@ -65,9 +67,11 @@ const FALLBACK_LANGUAGES = [
 const FALLBACK_TRANSLATIONS = {
   en: {
     settingsTitle: 'Settings',
+    showDeleteButton: 'Show delete button',
     sortChecked: 'Keep checked items at the bottom',
     colorScheme: 'Color scheme',
     removeChecked: 'Remove checked items',
+    deleteChecked: 'Delete checked items',
     languageLabel: 'Language',
     languagePlaceholder: 'Search languages…',
     listIdLabel: 'List ID',
@@ -147,12 +151,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   closeSettingsButton.addEventListener('click', () => settingsDialog.close());
   settingsSort.addEventListener('change', handleSortToggle);
   removeCheckedButton.addEventListener('click', removeCheckedItems);
+  deleteCheckedButton?.addEventListener('click', removeCheckedItems);
   confirmRemoveButton?.addEventListener('click', confirmRemoveCheckedItems);
   confirmCancelButton?.addEventListener('click', closeConfirmDialog);
   loginForm?.addEventListener('submit', handleLoginSubmit);
   toggleModeButton.addEventListener('click', toggleMode);
   copyShareCodeButton?.addEventListener('click', copyListIdToClipboard);
   shareListButton?.addEventListener('click', shareListLink);
+  settingsDeleteButton?.addEventListener('change', handleDeleteButtonToggle);
   languageSelect?.addEventListener('change', (event) => setLanguage(event.target.value));
   settingsDialog.addEventListener('click', (event) => {
     if (event.target === settingsDialog) {
@@ -306,6 +312,9 @@ function setDoc(nextDoc, { sync = false, persist = true, renderNow = true } = {}
     if (settingsSort) {
       settingsSort.checked = Boolean(settings.sortChecked);
     }
+    if (settingsDeleteButton) {
+      settingsDeleteButton.checked = Boolean(settings.showDeleteButton);
+    }
     if (schemeSelect) {
       schemeSelect.value = settings.colorScheme;
     }
@@ -429,6 +438,7 @@ function render() {
   editorLineMap = textItems.map((item) => ({ id: item.id, text: item.text }));
 
   settingsSort.checked = Boolean(settings.sortChecked);
+  if (settingsDeleteButton) settingsDeleteButton.checked = Boolean(settings.showDeleteButton);
   applyColorScheme(settings.colorScheme);
   applyTranslations();
   updateModeUI();
@@ -657,6 +667,13 @@ function handleSortToggle() {
   render();
 }
 
+function handleDeleteButtonToggle() {
+  settings.showDeleteButton = Boolean(settingsDeleteButton?.checked);
+  persistLocalSettings();
+  persistUiCache();
+  updateDeleteButtonVisibility();
+}
+
 function removeCheckedItems() {
   if (!appReady || !doc) return;
   const remaining = items.filter((item) => !item.checked);
@@ -682,6 +699,11 @@ function confirmRemoveCheckedItems() {
   if (settingsDialog.open) {
     settingsDialog.close();
   }
+}
+
+function updateDeleteButtonVisibility() {
+  if (!deleteCheckedButton) return;
+  deleteCheckedButton.classList.toggle('hidden', !settings.showDeleteButton);
 }
 
 function openConfirmDialog() {
@@ -1405,6 +1427,7 @@ function getLocale() {
 function applyTranslations() {
   const locale = getLocale();
   const header = settingsDialog?.querySelector('[data-i18n="settingsTitle"]');
+  const deleteButtonLabel = settingsDialog?.querySelector('[data-i18n="showDeleteButton"]');
   const sortLabel = settingsDialog?.querySelector('[data-i18n="sortChecked"]');
   const colorLabel = settingsDialog?.querySelector('[data-i18n="colorScheme"]');
   const removeButton = document.querySelector('[data-i18n="removeChecked"]');
@@ -1425,6 +1448,7 @@ function applyTranslations() {
   const copyFeedbackLabel = document.querySelector('[data-i18n="copyFeedback"]');
 
   if (header) header.textContent = locale.settingsTitle;
+  if (deleteButtonLabel) deleteButtonLabel.textContent = locale.showDeleteButton || 'Show delete button';
   if (sortLabel) sortLabel.textContent = locale.sortChecked;
   if (colorLabel) colorLabel.textContent = locale.colorScheme;
   if (removeButton) removeButton.textContent = locale.removeChecked;
@@ -1450,6 +1474,11 @@ function applyTranslations() {
   if (loginSubmitLabel) loginSubmitLabel.textContent = locale.loginSubmit;
   if (loginInvalidLabel) loginInvalidLabel.textContent = locale.loginInvalid;
   if (copyFeedbackLabel) copyFeedbackLabel.textContent = locale.copyFeedback;
+  if (deleteCheckedButton) {
+    const deleteLabel = locale.deleteChecked || locale.removeChecked || 'Delete checked items';
+    deleteCheckedButton.setAttribute('title', deleteLabel);
+    deleteCheckedButton.setAttribute('aria-label', deleteLabel);
+  }
   const confirmTitleLabel = document.querySelector('[data-i18n="removeCheckedConfirmTitle"]');
   const confirmBodyLabel = document.querySelector('[data-i18n="removeCheckedConfirmBody"]');
   const confirmOkLabel = document.querySelector('[data-i18n="removeCheckedConfirmOk"]');
@@ -1485,6 +1514,10 @@ function applyTranslations() {
   if (languageSelect) {
     languageSelect.value = translations[settings.language] ? settings.language : 'en';
   }
+  if (settingsDeleteButton) {
+    settingsDeleteButton.checked = Boolean(settings.showDeleteButton);
+  }
+  updateDeleteButtonVisibility();
   updateStatusTooltip(locale);
   updatePresenceTooltip();
 }
@@ -1568,6 +1601,7 @@ function parseSettingsPayload(raw) {
     const result = {};
     if (typeof parsed.colorScheme === 'string') result.colorScheme = parsed.colorScheme;
     if (typeof parsed.language === 'string') result.language = parsed.language;
+    if (typeof parsed.showDeleteButton === 'boolean') result.showDeleteButton = parsed.showDeleteButton;
     if (typeof parsed.sortChecked === 'boolean') result.sortChecked = parsed.sortChecked;
     return Object.keys(result).length ? result : null;
   } catch (error) {
@@ -1584,6 +1618,7 @@ function persistLocalSettings() {
       JSON.stringify({
         colorScheme: settings.colorScheme,
         language: settings.language,
+        showDeleteButton: Boolean(settings.showDeleteButton),
         sortChecked: Boolean(settings.sortChecked)
       })
     );

@@ -692,6 +692,20 @@ button.danger {
   color: currentColor;
 }
 
+.delete-indicator {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.delete-indicator:hover {
+  background: rgba(239, 68, 68, 0.18);
+}
+
+.delete-indicator:focus-visible {
+  outline-color: rgba(239, 68, 68, 0.85);
+}
+
 .presence-indicator {
   height: 40px;
   width: 40px;
@@ -730,6 +744,7 @@ button.danger {
   button,
   .icon-button,
   .status-indicator,
+  .delete-indicator,
   .presence-indicator {
     width: 36px;
     height: 36px;

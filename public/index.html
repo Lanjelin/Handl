@@ -52,6 +52,7 @@
                 if (element) element.textContent = value;
               };
               setText('[data-i18n="settingsTitle"]', locale.settingsTitle);
+              setText('[data-i18n="showDeleteButton"]', locale.showDeleteButton);
               setText('[data-i18n="sortChecked"]', locale.sortChecked);
               setText('[data-i18n="colorScheme"]', locale.colorScheme);
               setText('[data-i18n="removeChecked"]', locale.removeChecked);
@@ -80,6 +81,12 @@
               if (toggleModeButton && locale.toggleToEdit) {
                 toggleModeButton.setAttribute('title', locale.toggleToEdit);
                 toggleModeButton.setAttribute('aria-label', locale.toggleToEdit);
+              }
+
+              const deleteCheckedButton = document.getElementById('delete-checked-button');
+              if (deleteCheckedButton && locale.deleteChecked) {
+                deleteCheckedButton.setAttribute('title', locale.deleteChecked);
+                deleteCheckedButton.setAttribute('aria-label', locale.deleteChecked);
               }
 
               const presenceIndicator = document.getElementById('presence-indicator');
@@ -220,6 +227,9 @@
             <button id="toggle-mode" class="ghost icon-button" type="button" aria-label="Switch editing mode">
               <span id="mode-icon" class="material-symbols-outlined">edit_note</span>
             </button>
+            <button id="delete-checked-button" class="status-indicator delete-indicator hidden" type="button" aria-label="Delete checked items">
+              <span class="material-symbols-outlined">delete</span>
+            </button>
             <button id="open-settings" class="ghost icon-button" type="button" aria-label="Open settings">
               <span class="material-symbols-outlined">settings</span>
             </button>
@@ -254,6 +264,10 @@ Bread"
           <label class="setting">
             <span data-i18n="languageLabel">Language</span>
             <select id="language-select"></select>
+          </label>
+          <label class="setting keep-bottom">
+            <input type="checkbox" id="show-delete-button" />
+            <span data-i18n="showDeleteButton">Show delete button</span>
           </label>
           <label class="setting keep-bottom">
             <input type="checkbox" id="sort-checked" />
