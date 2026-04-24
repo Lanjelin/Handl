@@ -262,10 +262,28 @@ function createList() {
 }
 
 function generateShareCode() {
-  let code;
-  do {
-    code = Array.from({ length: SHARE_CODE_LENGTH }, () => SHARE_CODE_ALPHABET[Math.floor(Math.random() * SHARE_CODE_ALPHABET.length)]).join('');
-  } while (db.prepare('SELECT 1 FROM lists WHERE share_code = ?').get(code));
+  const alphabetLength = SHARE_CODE_ALPHABET.length;
+  const cutoff = Math.floor(256 / alphabetLength) * alphabetLength;
+  let code = '';
+  while (code.length < SHARE_CODE_LENGTH) {
+    const bytes = randomBytes(SHARE_CODE_LENGTH * 2);
+    for (const byte of bytes) {
+      if (byte >= cutoff) continue;
+      code += SHARE_CODE_ALPHABET[byte % alphabetLength];
+      if (code.length >= SHARE_CODE_LENGTH) break;
+    }
+  }
+  while (db.prepare('SELECT 1 FROM lists WHERE share_code = ?').get(code)) {
+    code = '';
+    while (code.length < SHARE_CODE_LENGTH) {
+      const bytes = randomBytes(SHARE_CODE_LENGTH * 2);
+      for (const byte of bytes) {
+        if (byte >= cutoff) continue;
+        code += SHARE_CODE_ALPHABET[byte % alphabetLength];
+        if (code.length >= SHARE_CODE_LENGTH) break;
+      }
+    }
+  }
   return code;
 }
 
