@@ -1248,7 +1248,6 @@ async function shareListLink() {
   const joinUrl = url.toString();
   const shareData = {
     title: `${locale.shareJoinTitle || 'Join Handl list'} ${code}`,
-    text: joinUrl,
     url: joinUrl
   };
 
