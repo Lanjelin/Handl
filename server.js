@@ -35,7 +35,7 @@ const PERSIST_DEBOUNCE_MS = readEnvInt('PERSIST_DEBOUNCE_MS', 750);
 const PERSIST_MAX_DELAY_MS = readEnvInt('PERSIST_MAX_DELAY_MS', 30 * 1000);
 const BROADCAST_DEBOUNCE_MS = readEnvInt('BROADCAST_DEBOUNCE_MS', 50);
 const COMPACT_IDLE_DELAY_MS = readEnvInt('COMPACT_IDLE_DELAY_MS', 2 * 60 * 1000);
-const HEARTBEAT_MS = readEnvInt('HEARTBEAT_MS', 15000);
+const HEARTBEAT_MS = readEnvInt('HEARTBEAT_MS', 3000);
 const METRICS_WINDOW_MS = readEnvInt('METRICS_WINDOW_MS', 15 * 60 * 1000);
 const SHARE_CODE_ALPHABET = process.env.SHARE_CODE_ALPHABET || 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SHARE_CODE_LENGTH = readEnvInt('SHARE_CODE_LENGTH', 8);
@@ -148,7 +148,9 @@ app.post('/auth', (req, res) => {
 
 app.get('/themes.json', (req, res) => res.json(THEMES));
 app.get('/translations.json', (req, res) => res.json(TRANSLATIONS));
-app.get('/config.json', (req, res) => res.json({ title: 'Handl', debugMetrics: DEBUG_METRICS, authRequired: AUTH_ENABLED }));
+app.get('/config.json', (req, res) =>
+  res.json({ title: 'Handl', debugMetrics: DEBUG_METRICS, authRequired: AUTH_ENABLED, heartbeatMs: HEARTBEAT_MS })
+);
 app.get('/metrics', (req, res) => {
   if (!assertAuthenticated(req, res)) return;
   res.json(buildMetrics());

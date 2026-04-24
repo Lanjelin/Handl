@@ -157,6 +157,8 @@ let languages = FALLBACK_LANGUAGES;
 let translations = FALLBACK_TRANSLATIONS;
 let appReady = false;
 let debugMetricsEnabled = false;
+let heartbeatIntervalMs = 3000;
+let heartbeatStaleMs = 7000;
 let bootstrapStartedAt = performance.now();
 let sessionFetchStartedAt = 0;
 let websocketConnectStartedAt = 0;
@@ -597,10 +599,14 @@ async function fetchConfig() {
     const json = await res.json();
     debugMetricsEnabled = Boolean(json?.debugMetrics);
     authRequired = Boolean(json?.authRequired);
+    heartbeatIntervalMs = Number.isFinite(Number(json?.heartbeatMs)) ? Math.max(Number(json.heartbeatMs), 1000) : 3000;
+    heartbeatStaleMs = Math.max(7000, Math.round(heartbeatIntervalMs * 2.3333333333));
     debugMetric('config-loaded', {
       totalBootstrapMs: elapsedMs(bootstrapStartedAt),
       debugMetrics: debugMetricsEnabled,
-      authRequired
+      authRequired,
+      heartbeatMs: heartbeatIntervalMs,
+      heartbeatStaleMs
     });
     if (json?.title) {
       document.title = json.title;
@@ -1454,7 +1460,7 @@ function scheduleHeartbeatWatchdog() {
     heartbeatTimeout = null;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     const age = Date.now() - lastHeartbeatAt;
-    if (age >= 25000) {
+    if (age >= heartbeatStaleMs) {
       debugMetric('ws-heartbeat-stale', { ageMs: age });
       setStatus('warn');
       try {
@@ -1465,7 +1471,7 @@ function scheduleHeartbeatWatchdog() {
       return;
     }
     scheduleHeartbeatWatchdog();
-  }, 26000);
+  }, heartbeatIntervalMs + 1000);
 }
 
 function clearHeartbeatWatchdog() {
