@@ -27,6 +27,7 @@
           const theme = ui.theme || {};
           const locale = ui.locale || {};
           const language = settings.language || ui.language || 'en';
+          const showEditButton = settings.showEditButton !== false;
 
           document.documentElement.lang = language;
           document.documentElement.dataset.scheme = settings.colorScheme || ui.colorScheme || 'default';
@@ -53,6 +54,7 @@
               };
               setText('[data-i18n="settingsTitle"]', locale.settingsTitle);
               setText('[data-i18n="showDeleteButton"]', locale.showDeleteButton);
+              setText('[data-i18n="showEditButton"]', locale.showEditButton);
               setText('[data-i18n="sortChecked"]', locale.sortChecked);
               setText('[data-i18n="colorScheme"]', locale.colorScheme);
               setText('[data-i18n="removeChecked"]', locale.removeChecked);
@@ -81,6 +83,7 @@
               if (toggleModeButton && locale.toggleToEdit) {
                 toggleModeButton.setAttribute('title', locale.toggleToEdit);
                 toggleModeButton.setAttribute('aria-label', locale.toggleToEdit);
+                toggleModeButton.classList.toggle('hidden', !showEditButton);
               }
 
               const deleteCheckedButton = document.getElementById('delete-checked-button');
@@ -268,6 +271,10 @@ Bread"
           <label class="setting keep-bottom">
             <input type="checkbox" id="show-delete-button" />
             <span data-i18n="showDeleteButton">Show delete button</span>
+          </label>
+          <label class="setting keep-bottom">
+            <input type="checkbox" id="show-edit-button" />
+            <span data-i18n="showEditButton">Show edit/view button</span>
           </label>
           <label class="setting keep-bottom">
             <input type="checkbox" id="sort-checked" />
