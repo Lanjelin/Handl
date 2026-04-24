@@ -32,6 +32,19 @@ It is not:
    - add new items or edit the list
    - remove checked items when done shopping
 
+## Top bar
+
+The icons at the top are there to keep the app quiet and compact:
+
+| Icon | Meaning |
+| --- | --- |
+| <a href="https://fonts.google.com/icons?icon.query=cloud_done"><img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/cloud_done/default/48px.svg" alt="cloud_done" width="20" /></a> | Connected and in sync |
+| <a href="https://fonts.google.com/icons?icon.query=cloud_sync"><img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/cloud_sync/default/48px.svg" alt="cloud_sync" width="20" /></a> | Still syncing changes |
+| <a href="https://fonts.google.com/icons?icon.query=cloud_off"><img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/cloud_off/default/48px.svg" alt="cloud_off" width="20" /></a> | Disconnected or stale |
+| <a href="https://fonts.google.com/icons?icon.query=groups"><img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/groups/default/48px.svg" alt="groups" width="20" /></a> | Other people are viewing the same list |
+| <a href="https://fonts.google.com/icons?icon.query=edit_note"><img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/edit_note/default/48px.svg" alt="edit_note" width="20" /></a> | Toggle between checklist and text editor |
+| <a href="https://fonts.google.com/icons?icon.query=settings"><img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/settings/default/48px.svg" alt="settings" width="20" /></a> | Open local settings |
+
 ## Self-host
 
 ### Docker run
