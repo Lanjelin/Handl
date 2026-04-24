@@ -84,6 +84,11 @@ body.landing-open .app-shell {
   display: none;
 }
 
+body.landing-open .add-floating,
+body.auth-locked .add-floating {
+  display: none !important;
+}
+
 .app-shell {
   width: min(960px, 100%);
   max-width: 100%;
@@ -133,6 +138,7 @@ body.landing-open .app-shell {
   width: 100%;
   border-radius: 0.75rem;
   padding: 0.55rem 0.75rem;
+  font-size: 16px;
   font-weight: 600;
   background: var(--checkbox-bg);
   border: 1px solid var(--panel-border);
@@ -196,6 +202,7 @@ body.landing-open .app-shell {
 .landing-join-form input {
   flex: 1;
   min-width: 0;
+  font-size: 16px;
 }
 
 .landing-share-code-field {
@@ -435,6 +442,93 @@ button.danger {
   background: rgba(2, 6, 23, 0.72);
 }
 
+.add-dialog {
+  border: none;
+  border-radius: 1rem;
+  padding: 1.05rem 1.15rem 1.1rem;
+  background: var(--panel-bg);
+  color: var(--text-primary);
+  width: min(320px, 88vw);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
+}
+
+.add-dialog::backdrop {
+  background: rgba(2, 6, 23, 0.72);
+}
+
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.add-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.add-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--heading-color);
+}
+
+.add-close {
+  width: 36px;
+  height: 36px;
+}
+
+.add-item-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 16px;
+  font-weight: 600;
+  background: var(--checkbox-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.add-item-input:focus {
+  outline: none;
+  border-color: var(--button-bg);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+.add-multiple-setting {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.55rem;
+}
+
+.add-multiple-setting input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--button-bg);
+}
+
+.add-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: nowrap;
+}
+
+.add-actions button {
+  min-width: 6rem;
+}
+
+.add-actions .add-multiple-setting {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
 .confirm-header h3 {
   margin: 0;
   font-size: 1.05rem;
@@ -521,6 +615,7 @@ button.danger {
   flex: 1;
   border-radius: 0.75rem;
   padding: 0.55rem 0.75rem;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.02em;
   background: var(--checkbox-bg);
@@ -706,6 +801,42 @@ button.danger {
   outline-color: rgba(239, 68, 68, 0.85);
 }
 
+.add-indicator {
+  border-color: var(--button-ghost-border);
+  background: var(--button-ghost-bg);
+  color: var(--text-primary);
+}
+
+.add-indicator:hover {
+  background: var(--button-ghost-hover);
+  border-color: var(--button-ghost-border);
+}
+
+.add-indicator:focus-visible {
+  outline-color: var(--button-ghost-border);
+}
+
+.add-floating {
+  position: fixed;
+  bottom: calc(0.8rem + env(safe-area-inset-bottom));
+  width: 60px;
+  height: 60px;
+  min-width: 60px;
+  z-index: 30;
+}
+
+.add-floating-left {
+  left: calc(0.65rem + env(safe-area-inset-left));
+}
+
+.add-floating-right {
+  right: calc(0.55rem + env(safe-area-inset-right));
+}
+
+.add-floating .material-symbols-outlined {
+  font-size: 24px;
+}
+
 .presence-indicator {
   height: 40px;
   width: 40px;
@@ -745,10 +876,21 @@ button.danger {
   .icon-button,
   .status-indicator,
   .delete-indicator,
+  .add-indicator,
   .presence-indicator {
     width: 36px;
     height: 36px;
     min-width: 36px;
+  }
+
+  .add-floating {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+  }
+
+  .add-floating .material-symbols-outlined {
+    font-size: 24px;
   }
 
   .login-form button {

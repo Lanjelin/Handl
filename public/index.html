@@ -55,6 +55,11 @@
               setText('[data-i18n="settingsTitle"]', locale.settingsTitle);
               setText('[data-i18n="showDeleteButton"]', locale.showDeleteButton);
               setText('[data-i18n="showEditButton"]', locale.showEditButton);
+              setText('[data-i18n="showAddButton"]', locale.showAddButton);
+              setText('[data-i18n="addButtonNo"]', locale.addButtonNo);
+              setText('[data-i18n="addButtonTitleBar"]', locale.addButtonTitleBar);
+              setText('[data-i18n="addButtonLeft"]', locale.addButtonLeft);
+              setText('[data-i18n="addButtonRight"]', locale.addButtonRight);
               setText('[data-i18n="sortChecked"]', locale.sortChecked);
               setText('[data-i18n="colorScheme"]', locale.colorScheme);
               setText('[data-i18n="removeChecked"]', locale.removeChecked);
@@ -72,6 +77,10 @@
               setText('[data-i18n="landingInviteCancel"]', locale.landingInviteCancel);
               setText('[data-i18n="landingInviteBody"]', locale.landingInviteBody);
               setText('[data-i18n="copyFeedback"]', locale.copyFeedback);
+              setText('[data-i18n="addDialogTitle"]', locale.addDialogTitle);
+              setText('[data-i18n="addDialogMultiple"]', locale.addDialogMultiple);
+              setText('[data-i18n="addDialogSubmit"]', locale.addDialogSubmit);
+              setText('[data-i18n="addDialogClose"]', locale.addDialogClose);
 
               const settingsButton = document.getElementById('open-settings');
               if (settingsButton && locale.settingsTooltip) {
@@ -84,6 +93,29 @@
                 toggleModeButton.setAttribute('title', locale.toggleToEdit);
                 toggleModeButton.setAttribute('aria-label', locale.toggleToEdit);
                 toggleModeButton.classList.toggle('hidden', !showEditButton);
+              }
+
+              const titlebarAddButton = document.getElementById('titlebar-add-button');
+              if (titlebarAddButton && locale.addButton) {
+                titlebarAddButton.setAttribute('title', locale.addButton);
+                titlebarAddButton.setAttribute('aria-label', locale.addButton);
+              }
+
+              const floatingAddButton = document.getElementById('floating-add-button');
+              if (floatingAddButton && locale.addButton) {
+                floatingAddButton.setAttribute('title', locale.addButton);
+                floatingAddButton.setAttribute('aria-label', locale.addButton);
+              }
+
+              const addItemInput = document.getElementById('add-item-input');
+              if (addItemInput && locale.addDialogPlaceholder) {
+                addItemInput.placeholder = locale.addDialogPlaceholder;
+              }
+
+              const closeAddButton = document.getElementById('close-add');
+              if (closeAddButton && locale.addDialogClose) {
+                closeAddButton.setAttribute('title', locale.addDialogClose);
+                closeAddButton.setAttribute('aria-label', locale.addDialogClose);
               }
 
               const deleteCheckedButton = document.getElementById('delete-checked-button');
@@ -230,6 +262,9 @@
             <button id="toggle-mode" class="ghost icon-button" type="button" aria-label="Switch editing mode">
               <span id="mode-icon" class="material-symbols-outlined">edit_note</span>
             </button>
+            <button id="titlebar-add-button" class="status-indicator add-indicator hidden" type="button" aria-label="Add item">
+              <span class="material-symbols-outlined">add</span>
+            </button>
             <button id="delete-checked-button" class="status-indicator delete-indicator hidden" type="button" aria-label="Delete checked items">
               <span class="material-symbols-outlined">delete</span>
             </button>
@@ -267,6 +302,15 @@ Bread"
           <label class="setting">
             <span data-i18n="languageLabel">Language</span>
             <select id="language-select"></select>
+          </label>
+          <label class="setting">
+            <span data-i18n="showAddButton">Show Add button</span>
+            <select id="show-add-button">
+              <option value="no" data-i18n="addButtonNo">No</option>
+              <option value="titlebar" data-i18n="addButtonTitleBar">Title Bar</option>
+              <option value="left" data-i18n="addButtonLeft">Left</option>
+              <option value="right" data-i18n="addButtonRight">Right</option>
+            </select>
           </label>
           <label class="setting keep-bottom">
             <input type="checkbox" id="show-delete-button" />
@@ -325,6 +369,42 @@ Bread"
           <button id="confirm-remove" type="button" class="danger" data-i18n="removeCheckedConfirmOk">
             Remove
           </button>
+        </div>
+      </form>
+    </dialog>
+
+    <button
+      id="floating-add-button"
+      class="status-indicator add-indicator add-floating hidden"
+      type="button"
+      aria-label="Add item"
+    >
+      <span class="material-symbols-outlined">add</span>
+    </button>
+
+    <dialog id="add-dialog" class="add-dialog">
+      <form id="add-form" class="add-form">
+        <header class="add-header">
+          <h3 data-i18n="addDialogTitle">Add item</h3>
+          <button id="close-add" class="icon-button ghost add-close" type="button" aria-label="Close add dialog">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+        <input
+          id="add-item-input"
+          class="add-item-input"
+          type="text"
+          autofocus
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="Add item"
+        />
+        <div class="add-actions">
+          <label class="setting add-multiple-setting">
+            <input type="checkbox" id="add-multiple" />
+            <span data-i18n="addDialogMultiple">Multiple</span>
+          </label>
+          <button id="add-submit" type="submit" data-i18n="addDialogSubmit">Add</button>
         </div>
       </form>
     </dialog>

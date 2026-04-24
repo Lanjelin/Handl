@@ -19,6 +19,7 @@ const loginForm = document.getElementById('login-form');
 const loginPasswordInput = document.getElementById('login-password');
 const loginSubmitButton = document.getElementById('login-submit');
 const loginError = document.getElementById('login-error');
+const settingsAddButton = document.getElementById('show-add-button');
 const settingsDeleteButton = document.getElementById('show-delete-button');
 const settingsEditButton = document.getElementById('show-edit-button');
 const settingsSort = document.getElementById('sort-checked');
@@ -31,6 +32,8 @@ const shareCodeInput = document.getElementById('settings-share-code');
 const copyShareCodeButton = document.getElementById('copy-share-code-button');
 const shareListButton = document.getElementById('share-list-button');
 const deleteCheckedButton = document.getElementById('delete-checked-button');
+const titlebarAddButton = document.getElementById('titlebar-add-button');
+const floatingAddButton = document.getElementById('floating-add-button');
 const restoreCodeInput = document.getElementById('restore-code-input');
 const restoreCodeButton = document.getElementById('restore-code-button');
 const copyFeedback = document.getElementById('copy-feedback');
@@ -47,8 +50,20 @@ const landingJoinSubmit = document.getElementById('landing-join-submit');
 const landingTitle = document.querySelector('[data-i18n="landingTitle"]');
 const landingBody = document.querySelector('[data-i18n="landingBody"]');
 const themeColorMeta = document.getElementById('theme-color-meta');
+const addDialog = document.getElementById('add-dialog');
+const addForm = document.getElementById('add-form');
+const closeAddButton = document.getElementById('close-add');
+const addItemInput = document.getElementById('add-item-input');
+const addMultipleInput = document.getElementById('add-multiple');
 
-const DEFAULT_SETTINGS = { showDeleteButton: false, showEditButton: true, sortChecked: false, colorScheme: 'default', language: 'en' };
+const DEFAULT_SETTINGS = {
+  showAddButton: 'no',
+  showDeleteButton: false,
+  showEditButton: true,
+  sortChecked: false,
+  colorScheme: 'default',
+  language: 'en'
+};
 const LOCAL_SETTINGS_PREFIX = 'handl-settings';
 const LOCAL_UI_PREFIX = 'handl-ui-cache';
 const LOCAL_TOKEN_KEY = 'handl-session-token';
@@ -68,12 +83,23 @@ const FALLBACK_LANGUAGES = [
 const FALLBACK_TRANSLATIONS = {
   en: {
     settingsTitle: 'Settings',
+    showAddButton: 'Show Add button',
     showDeleteButton: 'Show delete button',
     showEditButton: 'Show edit/view button',
+    addButtonNo: 'No',
+    addButtonTitleBar: 'Title Bar',
+    addButtonLeft: 'Left',
+    addButtonRight: 'Right',
     sortChecked: 'Keep checked items at the bottom',
     colorScheme: 'Color scheme',
     removeChecked: 'Remove checked items',
     deleteChecked: 'Delete checked items',
+    addButton: 'Add item',
+    addDialogTitle: 'Add item',
+    addDialogPlaceholder: 'Item',
+    addDialogMultiple: 'Multiple',
+    addDialogSubmit: 'Add',
+    addDialogClose: 'Close',
     languageLabel: 'Language',
     languagePlaceholder: 'Search languages…',
     listIdLabel: 'List ID',
@@ -154,8 +180,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   settingsSort.addEventListener('change', handleSortToggle);
   removeCheckedButton.addEventListener('click', removeCheckedItems);
   deleteCheckedButton?.addEventListener('click', removeCheckedItems);
+  titlebarAddButton?.addEventListener('click', openAddDialog);
+  floatingAddButton?.addEventListener('click', openAddDialog);
   confirmRemoveButton?.addEventListener('click', confirmRemoveCheckedItems);
   confirmCancelButton?.addEventListener('click', closeConfirmDialog);
+  settingsAddButton?.addEventListener('change', handleAddButtonModeToggle);
   loginForm?.addEventListener('submit', handleLoginSubmit);
   toggleModeButton.addEventListener('click', toggleMode);
   copyShareCodeButton?.addEventListener('click', copyListIdToClipboard);
@@ -163,6 +192,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   settingsDeleteButton?.addEventListener('change', handleDeleteButtonToggle);
   settingsEditButton?.addEventListener('change', handleEditButtonToggle);
   languageSelect?.addEventListener('change', (event) => setLanguage(event.target.value));
+  closeAddButton?.addEventListener('click', closeAddDialog);
+  addForm?.addEventListener('submit', handleAddSubmit);
   settingsDialog.addEventListener('click', (event) => {
     if (event.target === settingsDialog) {
       settingsDialog.close();
@@ -171,6 +202,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   confirmDialog?.addEventListener('click', (event) => {
     if (event.target === confirmDialog) {
       closeConfirmDialog();
+    }
+  });
+  addDialog?.addEventListener('click', (event) => {
+    if (event.target === addDialog) {
+      closeAddDialog();
     }
   });
 
@@ -312,6 +348,9 @@ function setDoc(nextDoc, { sync = false, persist = true, renderNow = true } = {}
   } else {
     applyColorScheme(settings.colorScheme);
     applyTranslations();
+    if (settingsAddButton) {
+      settingsAddButton.value = normalizeAddButtonMode(settings.showAddButton);
+    }
     if (settingsSort) {
       settingsSort.checked = Boolean(settings.sortChecked);
     }
@@ -444,6 +483,7 @@ function render() {
   editorLineMap = textItems.map((item) => ({ id: item.id, text: item.text }));
 
   settingsSort.checked = Boolean(settings.sortChecked);
+  if (settingsAddButton) settingsAddButton.value = normalizeAddButtonMode(settings.showAddButton);
   if (settingsDeleteButton) settingsDeleteButton.checked = Boolean(settings.showDeleteButton);
   if (settingsEditButton) settingsEditButton.checked = settings.showEditButton !== false;
   applyColorScheme(settings.colorScheme);
@@ -674,6 +714,13 @@ function handleSortToggle() {
   render();
 }
 
+function handleAddButtonModeToggle() {
+  settings.showAddButton = normalizeAddButtonMode(settingsAddButton?.value);
+  persistLocalSettings();
+  persistUiCache();
+  updateAddButtonVisibility();
+}
+
 function handleDeleteButtonToggle() {
   settings.showDeleteButton = Boolean(settingsDeleteButton?.checked);
   persistLocalSettings();
@@ -715,6 +762,46 @@ function confirmRemoveCheckedItems() {
   }
 }
 
+function openAddDialog() {
+  if (!addDialog || addDialog.open) return;
+  addDialog.showModal();
+  if (addItemInput) {
+    addItemInput.value = '';
+    requestAnimationFrame(() => addItemInput.focus());
+  }
+}
+
+function closeAddDialog() {
+  if (!addDialog?.open) return;
+  addDialog.close();
+}
+
+function handleAddSubmit(event) {
+  event.preventDefault();
+  if (!appReady || !doc) return;
+  const text = (addItemInput?.value ?? '').trim();
+  if (!text) return;
+  const keepOpen = Boolean(addMultipleInput?.checked);
+  mutateDoc((draft) => {
+    if (!Array.isArray(draft.items)) {
+      draft.items = [];
+    }
+    draft.items.push({
+      id: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
+      text,
+      checked: false
+    });
+  });
+  if (!keepOpen) {
+    closeAddDialog();
+    return;
+  }
+  if (addItemInput) {
+    addItemInput.value = '';
+    requestAnimationFrame(() => addItemInput.focus());
+  }
+}
+
 function updateDeleteButtonVisibility() {
   if (!deleteCheckedButton) return;
   deleteCheckedButton.classList.toggle('hidden', !settings.showDeleteButton);
@@ -723,6 +810,25 @@ function updateDeleteButtonVisibility() {
 function updateEditButtonVisibility() {
   if (!toggleModeButton) return;
   toggleModeButton.classList.toggle('hidden', settings.showEditButton === false);
+}
+
+function updateAddButtonVisibility() {
+  const mode = normalizeAddButtonMode(settings.showAddButton);
+  const ready = Boolean(appReady);
+  const showTitleBar = ready && mode === 'titlebar';
+  const showFloating = ready && (mode === 'left' || mode === 'right');
+  if (titlebarAddButton) {
+    titlebarAddButton.classList.toggle('hidden', !showTitleBar);
+  }
+  if (floatingAddButton) {
+    floatingAddButton.classList.toggle('hidden', !showFloating);
+    floatingAddButton.classList.toggle('add-floating-left', mode === 'left');
+    floatingAddButton.classList.toggle('add-floating-right', mode === 'right');
+  }
+}
+
+function normalizeAddButtonMode(value) {
+  return ['no', 'titlebar', 'left', 'right'].includes(value) ? value : 'no';
 }
 
 function openConfirmDialog() {
@@ -1446,6 +1552,7 @@ function getLocale() {
 function applyTranslations() {
   const locale = getLocale();
   const header = settingsDialog?.querySelector('[data-i18n="settingsTitle"]');
+  const addButtonLabel = settingsDialog?.querySelector('[data-i18n="showAddButton"]');
   const deleteButtonLabel = settingsDialog?.querySelector('[data-i18n="showDeleteButton"]');
   const editButtonLabel = settingsDialog?.querySelector('[data-i18n="showEditButton"]');
   const sortLabel = settingsDialog?.querySelector('[data-i18n="sortChecked"]');
@@ -1466,10 +1573,24 @@ function applyTranslations() {
   const loginSubmitLabel = document.querySelector('[data-i18n="loginSubmit"]');
   const loginInvalidLabel = document.querySelector('[data-i18n="loginInvalid"]');
   const copyFeedbackLabel = document.querySelector('[data-i18n="copyFeedback"]');
+  const addDialogTitleLabel = document.querySelector('[data-i18n="addDialogTitle"]');
+  const addDialogSubmitLabel = document.querySelector('[data-i18n="addDialogSubmit"]');
+  const addDialogCloseLabel = document.querySelector('[data-i18n="addDialogClose"]');
+  const addDialogMultipleLabel = document.querySelector('[data-i18n="addDialogMultiple"]');
+  const addDialogInputLabel = addItemInput;
+  const addNoLabel = settingsDialog?.querySelector('[data-i18n="addButtonNo"]');
+  const addTitleBarLabel = settingsDialog?.querySelector('[data-i18n="addButtonTitleBar"]');
+  const addLeftLabel = settingsDialog?.querySelector('[data-i18n="addButtonLeft"]');
+  const addRightLabel = settingsDialog?.querySelector('[data-i18n="addButtonRight"]');
 
   if (header) header.textContent = locale.settingsTitle;
+  if (addButtonLabel) addButtonLabel.textContent = locale.showAddButton || 'Show Add button';
   if (deleteButtonLabel) deleteButtonLabel.textContent = locale.showDeleteButton || 'Show delete button';
   if (editButtonLabel) editButtonLabel.textContent = locale.showEditButton || 'Show edit/view button';
+  if (addNoLabel) addNoLabel.textContent = locale.addButtonNo || 'No';
+  if (addTitleBarLabel) addTitleBarLabel.textContent = locale.addButtonTitleBar || 'Title Bar';
+  if (addLeftLabel) addLeftLabel.textContent = locale.addButtonLeft || 'Left';
+  if (addRightLabel) addRightLabel.textContent = locale.addButtonRight || 'Right';
   if (sortLabel) sortLabel.textContent = locale.sortChecked;
   if (colorLabel) colorLabel.textContent = locale.colorScheme;
   if (removeButton) removeButton.textContent = locale.removeChecked;
@@ -1495,10 +1616,30 @@ function applyTranslations() {
   if (loginSubmitLabel) loginSubmitLabel.textContent = locale.loginSubmit;
   if (loginInvalidLabel) loginInvalidLabel.textContent = locale.loginInvalid;
   if (copyFeedbackLabel) copyFeedbackLabel.textContent = locale.copyFeedback;
+  if (addDialogTitleLabel) addDialogTitleLabel.textContent = locale.addDialogTitle || 'Add item';
+  if (addDialogSubmitLabel) addDialogSubmitLabel.textContent = locale.addDialogSubmit || 'Add';
+  if (addDialogCloseLabel) addDialogCloseLabel.textContent = locale.addDialogClose || 'Close';
+  if (addDialogMultipleLabel) addDialogMultipleLabel.textContent = locale.addDialogMultiple || 'Multiple';
+  if (addDialogInputLabel) addDialogInputLabel.placeholder = locale.addDialogPlaceholder || 'Item';
   if (deleteCheckedButton) {
     const deleteLabel = locale.deleteChecked || locale.removeChecked || 'Delete checked items';
     deleteCheckedButton.setAttribute('title', deleteLabel);
     deleteCheckedButton.setAttribute('aria-label', deleteLabel);
+  }
+  if (titlebarAddButton) {
+    const addLabel = locale.addButton || locale.addDialogTitle || 'Add item';
+    titlebarAddButton.setAttribute('title', addLabel);
+    titlebarAddButton.setAttribute('aria-label', addLabel);
+  }
+  if (floatingAddButton) {
+    const addLabel = locale.addButton || locale.addDialogTitle || 'Add item';
+    floatingAddButton.setAttribute('title', addLabel);
+    floatingAddButton.setAttribute('aria-label', addLabel);
+  }
+  if (closeAddButton) {
+    const closeLabel = locale.addDialogClose || 'Close';
+    closeAddButton.setAttribute('title', closeLabel);
+    closeAddButton.setAttribute('aria-label', closeLabel);
   }
   const confirmTitleLabel = document.querySelector('[data-i18n="removeCheckedConfirmTitle"]');
   const confirmBodyLabel = document.querySelector('[data-i18n="removeCheckedConfirmBody"]');
@@ -1535,12 +1676,16 @@ function applyTranslations() {
   if (languageSelect) {
     languageSelect.value = translations[settings.language] ? settings.language : 'en';
   }
+  if (settingsAddButton) {
+    settingsAddButton.value = normalizeAddButtonMode(settings.showAddButton);
+  }
   if (settingsDeleteButton) {
     settingsDeleteButton.checked = Boolean(settings.showDeleteButton);
   }
   if (settingsEditButton) {
     settingsEditButton.checked = settings.showEditButton !== false;
   }
+  updateAddButtonVisibility();
   updateDeleteButtonVisibility();
   updateEditButtonVisibility();
   updateStatusTooltip(locale);
@@ -1624,6 +1769,7 @@ function parseSettingsPayload(raw) {
   try {
     const parsed = JSON.parse(raw);
     const result = {};
+    if (typeof parsed.showAddButton === 'string') result.showAddButton = normalizeAddButtonMode(parsed.showAddButton);
     if (typeof parsed.colorScheme === 'string') result.colorScheme = parsed.colorScheme;
     if (typeof parsed.language === 'string') result.language = parsed.language;
     if (typeof parsed.showDeleteButton === 'boolean') result.showDeleteButton = parsed.showDeleteButton;
@@ -1642,6 +1788,7 @@ function persistLocalSettings() {
     localStorage.setItem(
       localSettingsKey(),
       JSON.stringify({
+        showAddButton: normalizeAddButtonMode(settings.showAddButton),
         colorScheme: settings.colorScheme,
         language: settings.language,
         showDeleteButton: Boolean(settings.showDeleteButton),
