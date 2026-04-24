@@ -113,6 +113,7 @@ const FALLBACK_TRANSLATIONS = {
     statusConnected: 'Connected',
     statusDisconnected: 'Disconnected',
     statusConnecting: 'Connecting',
+    statusSyncing: 'Syncing',
     presenceOthersViewing: 'Other people are viewing the list',
     copyListId: 'Copy list ID',
     shareList: 'Share list',
@@ -144,6 +145,7 @@ let settings = { ...DEFAULT_SETTINGS };
 let ws;
 let reconnectTimeout;
 let syncTimeout;
+let syncSettleTimeout;
 let persistTimeout;
 let pendingSync = false;
 let viewMode = true;
@@ -926,7 +928,7 @@ function connectSocket() {
     debugMetric('ws-open', {
       connectMs: elapsedMs(websocketConnectStartedAt)
     });
-    setStatus('online');
+    markSyncActive();
     markHeartbeatSeen();
     drainSync();
   });
@@ -940,6 +942,7 @@ function connectSocket() {
     debugMetric('ws-close', {
       connectMs: elapsedMs(websocketConnectStartedAt)
     });
+    clearSyncSettledStatus();
     setStatus('warn');
     clearHeartbeatWatchdog();
     scheduleReconnect();
@@ -950,6 +953,7 @@ function connectSocket() {
     debugMetric('ws-error', {
       connectMs: elapsedMs(websocketConnectStartedAt)
     });
+    clearSyncSettledStatus();
     setStatus('warn');
     clearHeartbeatWatchdog();
     ws.close();
@@ -1346,6 +1350,7 @@ function clearSessionToken() {
 
 function scheduleSync() {
   pendingSync = true;
+  markSyncActive();
   if (syncTimeout) clearTimeout(syncTimeout);
   syncTimeout = setTimeout(() => {
     syncTimeout = null;
@@ -1356,18 +1361,25 @@ function scheduleSync() {
 function drainSync() {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     pendingSync = true;
+    markSyncActive();
     return;
   }
   pendingSync = false;
+  markSyncActive();
   let nextSyncState = syncState;
+  let sentMessage = false;
   while (true) {
     const [updatedState, message] = Automerge.generateSyncMessage(doc, nextSyncState);
     nextSyncState = updatedState;
     if (!message) break;
+    sentMessage = true;
     ws.send(message);
   }
   syncState = nextSyncState;
   schedulePersistDocument();
+  if (!sentMessage || !pendingSync) {
+    scheduleSyncSettledStatus();
+  }
 }
 
 function scheduleReconnect() {
@@ -1382,6 +1394,7 @@ function resetSocketState() {
   socketGeneration += 1;
   pendingSync = false;
   syncState = Automerge.initSyncState();
+  clearSyncSettledStatus();
   updatePresence(0);
   clearHeartbeatWatchdog();
   if (reconnectTimeout) {
@@ -1403,6 +1416,7 @@ function handleMessage(raw) {
   const message = toUint8Array(raw);
   if (!message) return;
   try {
+    markSyncActive();
     const [nextDoc, nextSyncState] = Automerge.receiveSyncMessage(doc, syncState, message);
     doc = nextDoc;
     syncState = nextSyncState;
@@ -1453,6 +1467,28 @@ function markHeartbeatSeen(timestamp = Date.now()) {
   scheduleHeartbeatWatchdog();
 }
 
+function markSyncActive() {
+  clearSyncSettledStatus();
+  setStatus('syncing');
+}
+
+function scheduleSyncSettledStatus() {
+  clearSyncSettledStatus();
+  if (!ws || ws.readyState !== WebSocket.OPEN || pendingSync) return;
+  syncSettleTimeout = setTimeout(() => {
+    syncSettleTimeout = null;
+    if (!ws || ws.readyState !== WebSocket.OPEN || pendingSync) return;
+    if (Date.now() - lastHeartbeatAt >= heartbeatStaleMs) return;
+    setStatus('online');
+  }, 400);
+}
+
+function clearSyncSettledStatus() {
+  if (!syncSettleTimeout) return;
+  clearTimeout(syncSettleTimeout);
+  syncSettleTimeout = null;
+}
+
 function scheduleHeartbeatWatchdog() {
   clearHeartbeatWatchdog();
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
@@ -1462,6 +1498,7 @@ function scheduleHeartbeatWatchdog() {
     const age = Date.now() - lastHeartbeatAt;
     if (age >= heartbeatStaleMs) {
       debugMetric('ws-heartbeat-stale', { ageMs: age });
+      clearSyncSettledStatus();
       setStatus('warn');
       try {
         ws.close();
@@ -1702,7 +1739,8 @@ function updateStatusTooltip(locale = getLocale()) {
   const labels = {
     online: locale.statusConnected,
     warn: locale.statusDisconnected,
-    idle: locale.statusConnecting
+    idle: locale.statusConnecting,
+    syncing: locale.statusSyncing || locale.statusConnecting
   };
   statusIndicator.dataset.status = currentStatusVariant;
   statusIndicator.setAttribute('title', labels[currentStatusVariant] ?? locale.statusConnecting);

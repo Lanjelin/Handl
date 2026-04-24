@@ -812,6 +812,12 @@ button.danger {
   color: var(--status-connecting-fg);
 }
 
+.status-indicator[data-status='syncing'] {
+  background: var(--status-connecting-bg);
+  border-color: var(--status-connecting-border);
+  color: var(--status-connecting-fg);
+}
+
 .status-indicator[data-status='warn'] {
   background: var(--status-disconnected-bg);
   border-color: var(--status-disconnected-border);
