@@ -10,6 +10,7 @@ const statusIndicator = document.getElementById('status-icon');
 const statusSymbol = document.getElementById('status-symbol');
 const presenceIndicator = document.getElementById('presence-indicator');
 const schemeSelect = document.getElementById('scheme-select');
+const fontSizeSelect = document.getElementById('font-size-select');
 const titleHeading = document.querySelector('.pane-title h2');
 const settingsButton = document.getElementById('open-settings');
 const settingsDialog = document.getElementById('settings-dialog');
@@ -62,7 +63,8 @@ const DEFAULT_SETTINGS = {
   showEditButton: true,
   sortChecked: false,
   colorScheme: 'default',
-  language: 'en'
+  language: 'en',
+  fontSize: 'small'
 };
 const LOCAL_SETTINGS_PREFIX = 'handl-settings';
 const LOCAL_UI_PREFIX = 'handl-ui-cache';
@@ -102,6 +104,10 @@ const FALLBACK_TRANSLATIONS = {
     addDialogClose: 'Close',
     languageLabel: 'Language',
     languagePlaceholder: 'Search languages…',
+    fontSizeLabel: 'Font size',
+    fontSizeSmall: 'Small',
+    fontSizeMedium: 'Medium',
+    fontSizeLarge: 'Large',
     listIdLabel: 'List ID',
     joinListLabel: 'Join list',
     joinButton: 'Join',
@@ -182,6 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   settingsButton.addEventListener('click', () => settingsDialog.showModal());
   closeSettingsButton.addEventListener('click', () => settingsDialog.close());
   settingsSort.addEventListener('change', handleSortToggle);
+  fontSizeSelect?.addEventListener('change', handleFontSizeToggle);
   removeCheckedButton.addEventListener('click', removeCheckedItems);
   deleteCheckedButton?.addEventListener('click', removeCheckedItems);
   titlebarAddButton?.addEventListener('click', openAddDialog);
@@ -276,6 +283,7 @@ async function bootstrapApp() {
     await fetchTranslationCatalog();
 
     applyColorScheme(settings.colorScheme);
+    applyFontSize(settings.fontSize);
     applyTranslations();
     updateModeUI();
     setStatus('idle');
@@ -351,12 +359,16 @@ function setDoc(nextDoc, { sync = false, persist = true, renderNow = true } = {}
     render();
   } else {
     applyColorScheme(settings.colorScheme);
+    applyFontSize(settings.fontSize);
     applyTranslations();
     if (settingsAddButton) {
       settingsAddButton.value = normalizeAddButtonMode(settings.showAddButton);
     }
     if (settingsSort) {
       settingsSort.checked = Boolean(settings.sortChecked);
+    }
+    if (fontSizeSelect) {
+      fontSizeSelect.value = normalizeFontSize(settings.fontSize);
     }
     if (settingsDeleteButton) {
       settingsDeleteButton.checked = Boolean(settings.showDeleteButton);
@@ -487,10 +499,12 @@ function render() {
   editorLineMap = textItems.map((item) => ({ id: item.id, text: item.text }));
 
   settingsSort.checked = Boolean(settings.sortChecked);
+  if (fontSizeSelect) fontSizeSelect.value = normalizeFontSize(settings.fontSize);
   if (settingsAddButton) settingsAddButton.value = normalizeAddButtonMode(settings.showAddButton);
   if (settingsDeleteButton) settingsDeleteButton.checked = Boolean(settings.showDeleteButton);
   if (settingsEditButton) settingsEditButton.checked = settings.showEditButton !== false;
   applyColorScheme(settings.colorScheme);
+  applyFontSize(settings.fontSize);
   applyTranslations();
   updateModeUI();
 
@@ -722,6 +736,16 @@ function handleSortToggle() {
   render();
 }
 
+function handleFontSizeToggle() {
+  settings.fontSize = normalizeFontSize(fontSizeSelect?.value);
+  persistLocalSettings();
+  persistUiCache();
+  applyFontSize(settings.fontSize);
+  if (!viewMode) {
+    autoResizeEditor();
+  }
+}
+
 function handleAddButtonModeToggle() {
   settings.showAddButton = normalizeAddButtonMode(settingsAddButton?.value);
   persistLocalSettings();
@@ -741,6 +765,14 @@ function handleEditButtonToggle() {
   persistLocalSettings();
   persistUiCache();
   updateEditButtonVisibility();
+}
+
+function applyFontSize(size) {
+  const target = normalizeFontSize(size);
+  document.documentElement.dataset.fontSize = target;
+  if (fontSizeSelect) {
+    fontSizeSelect.value = target;
+  }
 }
 
 function removeCheckedItems() {
@@ -837,6 +869,10 @@ function updateAddButtonVisibility() {
 
 function normalizeAddButtonMode(value) {
   return ['no', 'titlebar', 'left', 'right'].includes(value) ? value : 'no';
+}
+
+function normalizeFontSize(value) {
+  return ['small', 'medium', 'large'].includes(value) ? value : 'small';
 }
 
 function openConfirmDialog() {
@@ -1599,6 +1635,7 @@ function applyTranslations() {
   const editButtonLabel = settingsDialog?.querySelector('[data-i18n="showEditButton"]');
   const sortLabel = settingsDialog?.querySelector('[data-i18n="sortChecked"]');
   const colorLabel = settingsDialog?.querySelector('[data-i18n="colorScheme"]');
+  const fontSizeLabel = settingsDialog?.querySelector('[data-i18n="fontSizeLabel"]');
   const removeButton = document.querySelector('[data-i18n="removeChecked"]');
   const languageLabel = settingsDialog?.querySelector('[data-i18n="languageLabel"]');
   const listIdLabel = settingsDialog?.querySelector('[data-i18n="listIdLabel"]');
@@ -1620,6 +1657,9 @@ function applyTranslations() {
   const addDialogCloseLabel = document.querySelector('[data-i18n="addDialogClose"]');
   const addDialogMultipleLabel = document.querySelector('[data-i18n="addDialogMultiple"]');
   const addDialogInputLabel = addItemInput;
+  const fontSizeSmallLabel = settingsDialog?.querySelector('[data-i18n="fontSizeSmall"]');
+  const fontSizeMediumLabel = settingsDialog?.querySelector('[data-i18n="fontSizeMedium"]');
+  const fontSizeLargeLabel = settingsDialog?.querySelector('[data-i18n="fontSizeLarge"]');
   const addNoLabel = settingsDialog?.querySelector('[data-i18n="addButtonNo"]');
   const addTitleBarLabel = settingsDialog?.querySelector('[data-i18n="addButtonTitleBar"]');
   const addLeftLabel = settingsDialog?.querySelector('[data-i18n="addButtonLeft"]');
@@ -1635,10 +1675,17 @@ function applyTranslations() {
   if (addRightLabel) addRightLabel.textContent = locale.addButtonRight || 'Right';
   if (sortLabel) sortLabel.textContent = locale.sortChecked;
   if (colorLabel) colorLabel.textContent = locale.colorScheme;
+  if (fontSizeLabel) fontSizeLabel.textContent = locale.fontSizeLabel || 'Font size';
   if (removeButton) removeButton.textContent = locale.removeChecked;
   if (languageLabel) languageLabel.textContent = locale.languageLabel;
+  if (fontSizeSmallLabel) fontSizeSmallLabel.textContent = locale.fontSizeSmall || 'Small';
+  if (fontSizeMediumLabel) fontSizeMediumLabel.textContent = locale.fontSizeMedium || 'Medium';
+  if (fontSizeLargeLabel) fontSizeLargeLabel.textContent = locale.fontSizeLarge || 'Large';
   if (languageSelect) {
     languageSelect.setAttribute('aria-label', locale.languageLabel);
+  }
+  if (fontSizeSelect) {
+    fontSizeSelect.setAttribute('aria-label', locale.fontSizeLabel || 'Font size');
   }
   if (listIdLabel) listIdLabel.textContent = locale.listIdLabel;
   if (joinLabel) joinLabel.textContent = locale.joinListLabel;
@@ -1717,6 +1764,9 @@ function applyTranslations() {
   }
   if (languageSelect) {
     languageSelect.value = translations[settings.language] ? settings.language : 'en';
+  }
+  if (fontSizeSelect) {
+    fontSizeSelect.value = normalizeFontSize(settings.fontSize);
   }
   if (settingsAddButton) {
     settingsAddButton.value = normalizeAddButtonMode(settings.showAddButton);
@@ -1815,6 +1865,7 @@ function parseSettingsPayload(raw) {
     if (typeof parsed.showAddButton === 'string') result.showAddButton = normalizeAddButtonMode(parsed.showAddButton);
     if (typeof parsed.colorScheme === 'string') result.colorScheme = parsed.colorScheme;
     if (typeof parsed.language === 'string') result.language = parsed.language;
+    if (typeof parsed.fontSize === 'string') result.fontSize = normalizeFontSize(parsed.fontSize);
     if (typeof parsed.showDeleteButton === 'boolean') result.showDeleteButton = parsed.showDeleteButton;
     if (typeof parsed.showEditButton === 'boolean') result.showEditButton = parsed.showEditButton;
     if (typeof parsed.sortChecked === 'boolean') result.sortChecked = parsed.sortChecked;
@@ -1834,6 +1885,7 @@ function persistLocalSettings() {
         showAddButton: normalizeAddButtonMode(settings.showAddButton),
         colorScheme: settings.colorScheme,
         language: settings.language,
+        fontSize: normalizeFontSize(settings.fontSize),
         showDeleteButton: Boolean(settings.showDeleteButton),
         showEditButton: settings.showEditButton !== false,
         sortChecked: Boolean(settings.sortChecked)
@@ -1886,6 +1938,7 @@ function hydrateBootState() {
   }
   if (boot.settings && typeof boot.settings === 'object') {
     settings = { ...settings, ...boot.settings };
+    settings.fontSize = normalizeFontSize(settings.fontSize);
   }
   if (boot.ui && typeof boot.ui === 'object') {
     if (boot.ui.theme) {

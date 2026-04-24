@@ -36,6 +36,24 @@
   --status-idle-bg: var(--status-connecting-bg);
   --status-idle-border: var(--status-connecting-border);
   --status-idle-fg: var(--status-connecting-fg);
+  --list-item-font-size: 0.95rem;
+  --list-item-line-height: 1.3;
+  --editor-font-size: 1rem;
+  --editor-line-height: 1.4;
+}
+
+html[data-font-size='medium'] {
+  --list-item-font-size: 1.12rem;
+  --list-item-line-height: 1.35;
+  --editor-font-size: 1.16rem;
+  --editor-line-height: 1.44;
+}
+
+html[data-font-size='large'] {
+  --list-item-font-size: 1.26rem;
+  --list-item-line-height: 1.4;
+  --editor-font-size: 1.3rem;
+  --editor-line-height: 1.47;
 }
 
 html {
@@ -379,8 +397,8 @@ button.danger {
 
 .item-text {
   font-weight: 600;
-  font-size: 0.95rem;
-  line-height: 1.3;
+  font-size: var(--list-item-font-size);
+  line-height: var(--list-item-line-height);
 }
 
 .single-edit {
@@ -391,13 +409,13 @@ button.danger {
   border: 1px solid var(--panel-border);
   background: var(--checkbox-bg);
   color: var(--text-primary);
-  font-size: 1rem;
+  font-size: var(--editor-font-size);
   padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom)) 1rem;
   resize: none;
   font-family: 'Inter', system-ui, sans-serif;
   overflow-y: hidden;
   overflow-x: hidden;
-  line-height: 1.4;
+  line-height: var(--editor-line-height);
   flex: 0 0 auto;
 }
 

@@ -27,10 +27,14 @@
           const theme = ui.theme || {};
           const locale = ui.locale || {};
           const language = settings.language || ui.language || 'en';
+          const fontSize = ['small', 'medium', 'large'].includes(settings.fontSize)
+            ? settings.fontSize
+            : (['small', 'medium', 'large'].includes(ui.fontSize) ? ui.fontSize : 'small');
           const showEditButton = settings.showEditButton !== false;
 
           document.documentElement.lang = language;
           document.documentElement.dataset.scheme = settings.colorScheme || ui.colorScheme || 'default';
+          document.documentElement.dataset.fontSize = fontSize;
 
           const meta = document.getElementById('theme-color-meta');
           if (meta) {
@@ -64,6 +68,10 @@
               setText('[data-i18n="colorScheme"]', locale.colorScheme);
               setText('[data-i18n="removeChecked"]', locale.removeChecked);
               setText('[data-i18n="languageLabel"]', locale.languageLabel);
+              setText('[data-i18n="fontSizeLabel"]', locale.fontSizeLabel);
+              setText('[data-i18n="fontSizeSmall"]', locale.fontSizeSmall);
+              setText('[data-i18n="fontSizeMedium"]', locale.fontSizeMedium);
+              setText('[data-i18n="fontSizeLarge"]', locale.fontSizeLarge);
               setText('[data-i18n="listIdLabel"]', locale.listIdLabel);
               setText('[data-i18n="joinListLabel"]', locale.joinListLabel);
               document.querySelectorAll('[data-i18n="joinButton"]').forEach((element) => {
@@ -302,6 +310,14 @@ Bread"
           <label class="setting">
             <span data-i18n="languageLabel">Language</span>
             <select id="language-select"></select>
+          </label>
+          <label class="setting">
+            <span data-i18n="fontSizeLabel">Font size</span>
+            <select id="font-size-select">
+              <option value="small" data-i18n="fontSizeSmall">Small</option>
+              <option value="medium" data-i18n="fontSizeMedium">Medium</option>
+              <option value="large" data-i18n="fontSizeLarge">Large</option>
+            </select>
           </label>
           <label class="setting">
             <span data-i18n="showAddButton">Show Add button</span>
