@@ -1,10 +1,11 @@
-const CACHE_NAME = 'handl-shell-v5';
+const CACHE_NAME = 'handl-shell-v7';
 const ASSETS = [
   '/',
   '/index.html',
   '/style.css',
   '/main.js',
   '/automerge.js',
+  '/automerge.wasm',
   '/manifest.json',
   '/icon.svg'
 ];
@@ -39,7 +40,7 @@ self.addEventListener('fetch', (event) => {
     url.pathname === '/style.css' ||
     url.pathname === '/manifest.json' ||
     url.pathname === '/automerge.js' ||
-    url.pathname.startsWith('/vendor/automerge/');
+    url.pathname === '/automerge.wasm';
   if (isShellAsset) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))

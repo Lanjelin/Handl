@@ -7,6 +7,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "build:automerge": "node scripts/build-automerge.mjs",
     "test": "node --test"
   },
   "dependencies": {
@@ -14,5 +15,8 @@
     "better-sqlite3": "^12.9.0",
     "express": "^4.20.2",
     "ws": "^8.13.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.0"
   }
 }
