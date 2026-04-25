@@ -29,7 +29,7 @@ const PORT = readEnvInt('PORT', 3000);
 const DATA_DIR = process.env.DATA_DIR ? path.resolve(__dirname, process.env.DATA_DIR) : DEFAULT_DATA_DIR;
 const DB_FILE = process.env.DB_FILE ? path.resolve(__dirname, process.env.DB_FILE) : path.join(DATA_DIR, 'handl.db');
 const PUBLIC_DIR = process.env.PUBLIC_DIR ? path.resolve(__dirname, process.env.PUBLIC_DIR) : path.join(__dirname, 'public');
-const AUTOMERGE_MJS_DIR = path.join(__dirname, 'node_modules/@automerge/automerge/dist/mjs');
+const AUTOMERGE_BROWSER_DIR = path.join(__dirname, 'node_modules/@automerge/automerge/dist/cjs');
 const PRUNE_AFTER_MS = readEnvInt('PRUNE_AFTER_MS', 180 * 24 * 60 * 60 * 1000);
 const PERSIST_DEBOUNCE_MS = readEnvInt('PERSIST_DEBOUNCE_MS', 750);
 const PERSIST_MAX_DELAY_MS = readEnvInt('PERSIST_MAX_DELAY_MS', 30 * 1000);
@@ -159,7 +159,7 @@ app.get(['/', '/index.html'], (req, res) => {
   res.type('html');
   res.send(renderIndexHtml(!isAuthenticated(req)));
 });
-app.use('/vendor/automerge', express.static(AUTOMERGE_MJS_DIR, { maxAge: 0 }));
+app.use('/vendor/automerge', express.static(AUTOMERGE_BROWSER_DIR, { maxAge: 0 }));
 app.use(express.static(PUBLIC_DIR, { maxAge: 0 }));
 
 const server = createServer(app);
@@ -732,7 +732,9 @@ function timingSafeEquals(left, right) {
 }
 
 function renderIndexHtml(authLocked = false) {
-  return authLocked ? INDEX_HTML.replace('<body>', '<body class="auth-locked">') : INDEX_HTML;
+  const authScript = `<script>window.__handlAuthLocked = ${authLocked ? 'true' : 'false'};</script>`;
+  const withAuthScript = INDEX_HTML.replace('<head>', `<head>\n    ${authScript}`);
+  return authLocked ? withAuthScript.replace('<body>', '<body class="auth-locked">') : withAuthScript;
 }
 
 function readEnvInt(name, fallback) {

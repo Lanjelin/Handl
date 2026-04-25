@@ -1,14 +1,28 @@
-import {initializeBase64Wasm, UseApi} from '/vendor/automerge/low_level.js';
-import * as api from '/vendor/automerge/wasm_bindgen_output/web/automerge_wasm.js';
-import * as Automerge from '/vendor/automerge/index.js';
+async function loadAutomerge() {
+  if (globalThis.Automerge) return globalThis.Automerge;
 
-import {automergeWasmBase64} from '/vendor/automerge/wasm_bindgen_output/web/automerge_wasm_bg_base64.js';
+  const [bundleResponse, wasmResponse] = await Promise.all([
+    fetch('/vendor/automerge/slim.cjs', { cache: 'no-store' }),
+    fetch('/vendor/automerge/automerge_wasm_bg.wasm', { cache: 'no-store' })
+  ]);
 
-export const automergeReady = initializeBase64Wasm(automergeWasmBase64).then(() => {
-  UseApi(api);
-  globalThis.Automerge = Automerge;
-  return Automerge;
-});
+  if (!bundleResponse.ok) {
+    throw new Error('Failed to load Automerge bundle');
+  }
+  if (!wasmResponse.ok) {
+    throw new Error('Failed to load Automerge wasm');
+  }
 
-export default Automerge;
-export * from '/vendor/automerge/index.js';
+  const bundleSource = await bundleResponse.text();
+  const wasmBytes = new Uint8Array(await wasmResponse.arrayBuffer());
+  const module = { exports: {} };
+  const bundleFactory = new Function('module', 'exports', `${bundleSource}\nreturn module.exports;`);
+  const automergeExports = bundleFactory(module, module.exports);
+
+  await automergeExports.initializeWasm(wasmBytes);
+  globalThis.Automerge = automergeExports;
+  return automergeExports;
+}
+
+export const automergeReady = loadAutomerge();
+export default await automergeReady;
