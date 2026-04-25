@@ -39,15 +39,12 @@ const restoreCodeInput = document.getElementById('restore-code-input');
 const restoreCodeButton = document.getElementById('restore-code-button');
 const copyFeedback = document.getElementById('copy-feedback');
 const landingScreen = document.getElementById('landing-screen');
-const landingCreateButton = document.getElementById('landing-create-button');
-const landingJoinButton = document.getElementById('landing-join-button');
 const landingActions = document.getElementById('landing-actions');
 const landingInviteActions = document.getElementById('landing-invite-actions');
 const landingInviteJoinButton = document.getElementById('landing-invite-join-button');
 const landingInviteCancelButton = document.getElementById('landing-invite-cancel-button');
 const landingJoinForm = document.getElementById('landing-join-form');
 const landingShareCodeInput = document.getElementById('landing-share-code');
-const landingJoinSubmit = document.getElementById('landing-join-submit');
 const landingTitle = document.querySelector('[data-i18n="landingTitle"]');
 const landingBody = document.querySelector('[data-i18n="landingBody"]');
 const themeColorMeta = document.getElementById('theme-color-meta');
@@ -182,8 +179,11 @@ let editorLineMap = [];
 let authRequired = false;
 let bootstrapComplete = false;
 let loginInProgress = false;
+let appInitialized = false;
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function initializeApp() {
+  if (appInitialized) return;
+  appInitialized = true;
   editor.addEventListener('input', handleEditorInput);
   settingsButton.addEventListener('click', () => settingsDialog.showModal());
   closeSettingsButton.addEventListener('click', () => settingsDialog.close());
@@ -236,20 +236,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     restoreList(code);
   };
 
-  landingCreateButton?.addEventListener('click', createNewList);
-  landingJoinButton?.addEventListener('click', () => {
-    if (!landingJoinForm) return;
-    landingJoinForm.classList.remove('hidden');
-    landingShareCodeInput?.focus();
-  });
   landingInviteJoinButton?.addEventListener('click', acceptInviteJoin);
   landingInviteCancelButton?.addEventListener('click', cancelInviteJoin);
-  landingJoinSubmit?.addEventListener('click', attemptLandingJoin);
-  landingShareCodeInput?.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    attemptLandingJoin();
-  });
 
   restoreCodeButton?.addEventListener('click', attemptRestore);
   restoreCodeInput?.addEventListener('focus', () => {
@@ -269,7 +257,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.warn('Application bootstrap failed', error);
     setStatus('warn');
   });
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeApp, { once: true });
+} else {
+  initializeApp();
+}
 
 async function bootstrapApp() {
   try {
@@ -1139,6 +1133,7 @@ async function applySessionResponse(session) {
 function showLandingScreen() {
   landingMode = 'welcome';
   pendingJoinCode = '';
+  document.documentElement.dataset.startScreen = 'landing';
   if (landingScreen) {
     landingScreen.classList.remove('hidden');
     landingScreen.setAttribute('aria-hidden', 'false');
@@ -1160,6 +1155,7 @@ function showLandingScreen() {
 }
 
 function hideLandingScreen() {
+  delete document.documentElement.dataset.startScreen;
   if (landingScreen) {
     landingScreen.classList.add('hidden');
     landingScreen.setAttribute('aria-hidden', 'true');
@@ -1208,22 +1204,6 @@ function renderLandingCopy() {
   }
   if (landingTitle) landingTitle.textContent = locale.landingTitle;
   if (landingBody) landingBody.textContent = locale.landingBody;
-}
-
-async function createNewList() {
-  try {
-    await loadSessionFromServer({ createToken: true });
-    clearJoinCodeFromUrl();
-  } catch (error) {
-    console.warn('Failed to create new list', error);
-    alert('Unable to create a new list right now. Please try again.');
-  }
-}
-
-async function attemptLandingJoin() {
-  const code = (landingShareCodeInput?.value ?? '').trim().toUpperCase();
-  if (!code) return;
-  await joinList(code);
 }
 
 async function acceptInviteJoin() {

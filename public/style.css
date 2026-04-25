@@ -81,6 +81,18 @@ html[data-ui-add-button='right'] #floating-add-button {
   left: auto;
 }
 
+html[data-start-screen='landing'] .app-shell {
+  display: none !important;
+}
+
+html[data-start-screen='landing'] .landing-screen {
+  display: flex !important;
+}
+
+html[data-start-screen='landing'] .add-floating {
+  display: none !important;
+}
+
 html {
   background-color: var(--page-bg-solid, #020617);
   overscroll-behavior: contain;

@@ -27,6 +27,9 @@
           const theme = ui.theme || {};
           const locale = ui.locale || {};
           const language = settings.language || ui.language || 'en';
+          const authLocked = Boolean(window.__handlAuthLocked);
+          const storedToken = localStorage.getItem('handl-session-token') || '';
+          const hasJoinOrRestore = new URL(location.href).searchParams.has('join') || new URL(location.href).searchParams.has('restore');
           const addButtonMode = ['no', 'titlebar', 'left', 'right'].includes(settings.showAddButton)
             ? settings.showAddButton
             : 'no';
@@ -36,12 +39,95 @@
             ? settings.fontSize
             : (['small', 'medium', 'large'].includes(ui.fontSize) ? ui.fontSize : 'small');
 
+          const loadMainModule = () => {
+            if (document.getElementById('handl-main-module')) return;
+            const script = document.createElement('script');
+            script.id = 'handl-main-module';
+            script.type = 'module';
+            script.src = '/main.js';
+            document.head.appendChild(script);
+          };
+
           document.documentElement.lang = language;
           document.documentElement.dataset.scheme = settings.colorScheme || ui.colorScheme || 'default';
           document.documentElement.dataset.uiAddButton = addButtonMode;
           document.documentElement.dataset.uiShowEditButton = showEditButton ? 'true' : 'false';
           document.documentElement.dataset.uiShowDeleteButton = showDeleteButton ? 'true' : 'false';
           document.documentElement.dataset.fontSize = fontSize;
+          const fastLanding = !authLocked && !storedToken && !hasJoinOrRestore;
+          if (fastLanding) {
+            document.documentElement.dataset.startScreen = 'landing';
+          }
+
+          if (fastLanding) {
+            document.addEventListener('DOMContentLoaded', () => {
+              const landingCreateButton = document.getElementById('landing-create-button');
+              const landingJoinButton = document.getElementById('landing-join-button');
+              const landingJoinForm = document.getElementById('landing-join-form');
+              const landingShareCodeInput = document.getElementById('landing-share-code');
+              const landingJoinSubmit = document.getElementById('landing-join-submit');
+
+              const makeToken = () => crypto.randomUUID?.() || Math.random().toString(36).slice(2);
+              const persistToken = (token) => localStorage.setItem('handl-session-token', token);
+
+              const createSession = async () => {
+                const token = makeToken();
+                persistToken(token);
+                const res = await fetch(`/session?token=${encodeURIComponent(token)}`, { cache: 'no-store' });
+                if (!res.ok) throw new Error('create failed');
+                location.replace('/');
+              };
+
+              const joinSession = async () => {
+                const code = (landingShareCodeInput?.value ?? '').trim().toUpperCase();
+                if (!code) return;
+                const token = makeToken();
+                persistToken(token);
+                const res = await fetch('/restore', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ code, token })
+                });
+                if (!res.ok) throw new Error('join failed');
+                location.replace('/');
+              };
+
+              if (landingJoinSubmit) {
+                landingJoinSubmit.textContent = locale.joinButton || landingJoinSubmit.textContent || 'Join';
+                landingJoinSubmit.setAttribute('aria-label', locale.joinButton || 'Join');
+              }
+
+              landingCreateButton?.addEventListener('click', () => {
+                createSession().catch(() => {
+                  localStorage.removeItem('handl-session-token');
+                });
+              });
+              landingJoinButton?.addEventListener('click', () => {
+                if (!landingJoinForm) return;
+                landingJoinForm.classList.remove('hidden');
+                landingShareCodeInput?.focus();
+              });
+              landingJoinSubmit?.addEventListener('click', () => {
+                joinSession().catch(() => {
+                  localStorage.removeItem('handl-session-token');
+                });
+              });
+              landingShareCodeInput?.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                joinSession().catch(() => {
+                  localStorage.removeItem('handl-session-token');
+                });
+              });
+            }, { once: true });
+          } else {
+            const bootMain = () => loadMainModule();
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', bootMain, { once: true });
+            } else {
+              bootMain();
+            }
+          }
 
           const meta = document.getElementById('theme-color-meta');
           if (meta) {
@@ -82,7 +168,7 @@
               setText('[data-i18n="listIdLabel"]', locale.listIdLabel);
               setText('[data-i18n="joinListLabel"]', locale.joinListLabel);
               document.querySelectorAll('[data-i18n="joinButton"]').forEach((element) => {
-                element.textContent = locale.joinButton;
+                element.textContent = locale.joinButton || element.textContent || 'Join';
               });
               setText('[data-i18n="landingTitle"]', locale.landingTitle);
               setText('[data-i18n="landingBody"]', locale.landingBody);
@@ -453,6 +539,5 @@ Bread"
       </label>
     </template>
 
-    <script type="module" src="/main.js"></script>
   </body>
 </html>
