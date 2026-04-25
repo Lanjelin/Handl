@@ -14,6 +14,11 @@
         const DEFAULT_THEME_META_COLOR = '#0f172a';
         const LOCAL_SETTINGS_PREFIX = 'handl-settings';
         const LOCAL_UI_PREFIX = 'handl-ui-cache';
+        window.__handlBootMarks = window.__handlBootMarks || [];
+        window.__handlBootMark = window.__handlBootMark || ((label, data = {}) => {
+          window.__handlBootMarks.push({ label, data, tsMs: performance.now() });
+        });
+        window.__handlBootMark('head-script-start');
         try {
           const activeListId = localStorage.getItem('handl-active-list-id') || '';
           const settingsRaw = localStorage.getItem(LOCAL_SETTINGS_PREFIX) || (
@@ -41,10 +46,12 @@
 
           const loadMainModule = () => {
             if (document.getElementById('handl-main-module')) return;
+            window.__handlBootMark('main-module-requested');
             const script = document.createElement('script');
             script.id = 'handl-main-module';
             script.type = 'module';
             script.src = '/main.js';
+            script.addEventListener('load', () => window.__handlBootMark('main-module-loaded'));
             document.head.appendChild(script);
           };
 

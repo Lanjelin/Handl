@@ -1,4 +1,5 @@
 import Automerge, {automergeReady} from '/automerge.js';
+globalThis.__handlBootMark?.('main-module-start');
 
 const editor = document.getElementById('text-editor');
 const checklist = document.getElementById('checklist');
@@ -267,6 +268,7 @@ if (document.readyState === 'loading') {
 
 async function bootstrapApp() {
   try {
+    globalThis.__handlBootMark?.('bootstrap-start');
     await automergeReady;
 
     debugMark('automerge-ready');
@@ -601,6 +603,18 @@ function debugMark(label) {
   });
 }
 
+function flushBootMarks() {
+  if (!debugMetricsEnabled) return;
+  const marks = Array.isArray(globalThis.__handlBootMarks) ? globalThis.__handlBootMarks : [];
+  while (marks.length > 0) {
+    const mark = marks.shift();
+    console.info(`[Handl metrics] ${mark.label}`, {
+      ...(mark.data || {}),
+      tsMs: Math.round(mark.tsMs)
+    });
+  }
+}
+
 function elapsedMs(startAt) {
   return startAt ? Math.round(performance.now() - startAt) : null;
 }
@@ -614,6 +628,7 @@ async function fetchConfig() {
     authRequired = Boolean(json?.authRequired);
     heartbeatIntervalMs = Number.isFinite(Number(json?.heartbeatMs)) ? Math.max(Number(json.heartbeatMs), 1000) : 3000;
     heartbeatStaleMs = Math.max(7000, Math.round(heartbeatIntervalMs * 2.3333333333));
+    flushBootMarks();
     debugMetric('config-loaded', {
       totalBootstrapMs: elapsedMs(bootstrapStartedAt),
       debugMetrics: debugMetricsEnabled,

@@ -1,26 +1,18 @@
 async function loadAutomerge() {
   if (globalThis.Automerge) return globalThis.Automerge;
+  globalThis.__handlBootMark?.('automerge-loader-start');
 
-  const [bundleResponse, wasmResponse] = await Promise.all([
-    fetch('/vendor/automerge/slim.cjs', { cache: 'no-store' }),
-    fetch('/vendor/automerge/automerge_wasm_bg.wasm', { cache: 'no-store' })
-  ]);
-
-  if (!bundleResponse.ok) {
+  const response = await fetch('/vendor/automerge/fullfat_base64.cjs', { cache: 'no-store' });
+  if (!response.ok) {
     throw new Error('Failed to load Automerge bundle');
   }
-  if (!wasmResponse.ok) {
-    throw new Error('Failed to load Automerge wasm');
-  }
 
-  const bundleSource = await bundleResponse.text();
-  const wasmBytes = new Uint8Array(await wasmResponse.arrayBuffer());
+  const source = await response.text();
   const module = { exports: {} };
-  const bundleFactory = new Function('module', 'exports', `${bundleSource}\nreturn module.exports;`);
+  const bundleFactory = new Function('module', 'exports', `${source}\nreturn module.exports;`);
   const automergeExports = bundleFactory(module, module.exports);
-
-  await automergeExports.initializeWasm(wasmBytes);
   globalThis.Automerge = automergeExports;
+  globalThis.__handlBootMark?.('automerge-loader-loaded');
   return automergeExports;
 }
 
