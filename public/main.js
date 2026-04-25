@@ -56,9 +56,9 @@ const addItemInput = document.getElementById('add-item-input');
 const addMultipleInput = document.getElementById('add-multiple');
 
 const DEFAULT_SETTINGS = {
-  showAddButton: 'no',
-  showDeleteButton: false,
-  showEditButton: true,
+  showAddButton: 'titlebar',
+  showDeleteButton: true,
+  showEditButton: false,
   sortChecked: false,
   colorScheme: 'default',
   language: 'en',

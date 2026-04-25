@@ -37,9 +37,9 @@
           const hasJoinOrRestore = new URL(location.href).searchParams.has('join') || new URL(location.href).searchParams.has('restore');
           const addButtonMode = ['no', 'titlebar', 'left', 'right'].includes(settings.showAddButton)
             ? settings.showAddButton
-            : 'no';
-          const showEditButton = settings.showEditButton !== false;
-          const showDeleteButton = settings.showDeleteButton === true;
+            : 'titlebar';
+          const showEditButton = settings.showEditButton === true;
+          const showDeleteButton = settings.showDeleteButton !== false;
           const fontSize = ['small', 'medium', 'large'].includes(settings.fontSize)
             ? settings.fontSize
             : (['small', 'medium', 'large'].includes(ui.fontSize) ? ui.fontSize : 'small');
