@@ -56,6 +56,31 @@ html[data-font-size='large'] {
   --editor-line-height: 1.47;
 }
 
+html[data-ui-show-edit-button='false'] #toggle-mode,
+html[data-ui-show-delete-button='false'] #delete-checked-button {
+  display: none !important;
+}
+
+html[data-ui-show-edit-button='true'] #toggle-mode {
+  display: inline-flex !important;
+}
+
+html[data-ui-add-button='titlebar'] #titlebar-add-button,
+html[data-ui-add-button='left'] #floating-add-button,
+html[data-ui-add-button='right'] #floating-add-button {
+  display: inline-flex !important;
+}
+
+html[data-ui-add-button='left'] #floating-add-button {
+  left: calc(0.65rem + env(safe-area-inset-left));
+  right: auto;
+}
+
+html[data-ui-add-button='right'] #floating-add-button {
+  right: calc(0.55rem + env(safe-area-inset-right));
+  left: auto;
+}
+
 html {
   background-color: var(--page-bg-solid, #020617);
   overscroll-behavior: contain;

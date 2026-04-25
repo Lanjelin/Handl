@@ -27,13 +27,20 @@
           const theme = ui.theme || {};
           const locale = ui.locale || {};
           const language = settings.language || ui.language || 'en';
+          const addButtonMode = ['no', 'titlebar', 'left', 'right'].includes(settings.showAddButton)
+            ? settings.showAddButton
+            : 'no';
+          const showEditButton = settings.showEditButton !== false;
+          const showDeleteButton = settings.showDeleteButton === true;
           const fontSize = ['small', 'medium', 'large'].includes(settings.fontSize)
             ? settings.fontSize
             : (['small', 'medium', 'large'].includes(ui.fontSize) ? ui.fontSize : 'small');
-          const showEditButton = settings.showEditButton !== false;
 
           document.documentElement.lang = language;
           document.documentElement.dataset.scheme = settings.colorScheme || ui.colorScheme || 'default';
+          document.documentElement.dataset.uiAddButton = addButtonMode;
+          document.documentElement.dataset.uiShowEditButton = showEditButton ? 'true' : 'false';
+          document.documentElement.dataset.uiShowDeleteButton = showDeleteButton ? 'true' : 'false';
           document.documentElement.dataset.fontSize = fontSize;
 
           const meta = document.getElementById('theme-color-meta');
@@ -273,7 +280,7 @@
             <button id="titlebar-add-button" class="status-indicator add-indicator hidden" type="button" aria-label="Add item">
               <span class="material-symbols-outlined">add</span>
             </button>
-            <button id="delete-checked-button" class="status-indicator delete-indicator hidden" type="button" aria-label="Delete checked items">
+            <button id="delete-checked-button" class="status-indicator delete-indicator" type="button" aria-label="Delete checked items">
               <span class="material-symbols-outlined">delete</span>
             </button>
             <button id="open-settings" class="ghost icon-button" type="button" aria-label="Open settings">

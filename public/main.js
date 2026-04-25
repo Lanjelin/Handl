@@ -284,6 +284,7 @@ async function bootstrapApp() {
 
     applyColorScheme(settings.colorScheme);
     applyFontSize(settings.fontSize);
+    applyVisibilityState();
     applyTranslations();
     updateModeUI();
     setStatus('idle');
@@ -360,6 +361,7 @@ function setDoc(nextDoc, { sync = false, persist = true, renderNow = true } = {}
   } else {
     applyColorScheme(settings.colorScheme);
     applyFontSize(settings.fontSize);
+    applyVisibilityState();
     applyTranslations();
     if (settingsAddButton) {
       settingsAddButton.value = normalizeAddButtonMode(settings.showAddButton);
@@ -505,6 +507,7 @@ function render() {
   if (settingsEditButton) settingsEditButton.checked = settings.showEditButton !== false;
   applyColorScheme(settings.colorScheme);
   applyFontSize(settings.fontSize);
+  applyVisibilityState();
   applyTranslations();
   updateModeUI();
 
@@ -750,6 +753,7 @@ function handleAddButtonModeToggle() {
   settings.showAddButton = normalizeAddButtonMode(settingsAddButton?.value);
   persistLocalSettings();
   persistUiCache();
+  applyVisibilityState();
   updateAddButtonVisibility();
 }
 
@@ -757,6 +761,7 @@ function handleDeleteButtonToggle() {
   settings.showDeleteButton = Boolean(settingsDeleteButton?.checked);
   persistLocalSettings();
   persistUiCache();
+  applyVisibilityState();
   updateDeleteButtonVisibility();
 }
 
@@ -764,6 +769,7 @@ function handleEditButtonToggle() {
   settings.showEditButton = Boolean(settingsEditButton?.checked);
   persistLocalSettings();
   persistUiCache();
+  applyVisibilityState();
   updateEditButtonVisibility();
 }
 
@@ -773,6 +779,13 @@ function applyFontSize(size) {
   if (fontSizeSelect) {
     fontSizeSelect.value = target;
   }
+}
+
+function applyVisibilityState() {
+  const addButtonMode = normalizeAddButtonMode(settings.showAddButton);
+  document.documentElement.dataset.uiAddButton = addButtonMode;
+  document.documentElement.dataset.uiShowEditButton = settings.showEditButton !== false ? 'true' : 'false';
+  document.documentElement.dataset.uiShowDeleteButton = settings.showDeleteButton === true ? 'true' : 'false';
 }
 
 function removeCheckedItems() {
@@ -1919,6 +1932,7 @@ function persistUiCache() {
       JSON.stringify({
         colorScheme: settings.colorScheme,
         language: settings.language,
+        fontSize: normalizeFontSize(settings.fontSize),
         theme: {
           metaColor: theme.metaColor || FALLBACK_THEME_META_COLOR,
           variables: theme.variables || {}
