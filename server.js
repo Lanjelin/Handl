@@ -359,6 +359,12 @@ function loadListRecord(listId) {
   return record;
 }
 
+function flushAllListRecords() {
+  for (const listId of stateCache.keys()) {
+    flushListRecord(listId, { compact: false, evict: false });
+  }
+}
+
 function persistListRecord(listId, record) {
   const now = Date.now();
   const state = snapshotFromDoc(record.doc);
@@ -873,6 +879,8 @@ async function closeServer({ signal = 'manual', log = true } = {}) {
     forcePersistTimers.clear();
     broadcastTimers.clear();
     compactTimers.clear();
+
+    flushAllListRecords();
 
     for (const clients of listClients.values()) {
       for (const client of clients) {
