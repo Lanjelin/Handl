@@ -177,6 +177,7 @@ let landingMode = 'welcome';
 let pendingJoinCode = '';
 let copyFeedbackTimeout = null;
 let editorLineMap = [];
+let pendingDeleteCheckedIds = new Set();
 let authRequired = false;
 let bootstrapComplete = false;
 let loginInProgress = false;
@@ -799,25 +800,35 @@ function applyVisibilityState() {
 
 function removeCheckedItems() {
   if (!appReady || !doc) return;
-  const remaining = items.filter((item) => !item.checked);
-  if (remaining.length === items.length) return;
+  if (!canPerformDestructiveAction()) return;
+  const checkedIds = new Set(snapshotFromDoc(doc).items.filter((item) => item.checked).map((item) => item.id));
+  if (checkedIds.size === 0) return;
+  pendingDeleteCheckedIds = checkedIds;
+  updateDeleteActionAvailability();
   openConfirmDialog();
 }
 
 function confirmRemoveCheckedItems() {
   if (!appReady || !doc) return;
-  const remaining = items.filter((item) => !item.checked);
-  if (remaining.length === items.length) {
+  if (!canPerformDestructiveAction()) {
+    closeConfirmDialog();
+    return;
+  }
+  const checkedIds = pendingDeleteCheckedIds.size
+    ? pendingDeleteCheckedIds
+    : new Set(snapshotFromDoc(doc).items.filter((item) => item.checked).map((item) => item.id));
+  if (checkedIds.size === 0) {
     closeConfirmDialog();
     return;
   }
   mutateDoc((draft) => {
-    draft.items = remaining.map((item) => ({
-      id: item.id,
-      text: item.text,
-      checked: Boolean(item.checked)
-    }));
+    for (let index = draft.items.length - 1; index >= 0; index -= 1) {
+      if (checkedIds.has(draft.items[index]?.id)) {
+        draft.items.deleteAt(index);
+      }
+    }
   });
+  pendingDeleteCheckedIds = new Set();
   closeConfirmDialog();
   if (settingsDialog.open) {
     settingsDialog.close();
@@ -867,6 +878,7 @@ function handleAddSubmit(event) {
 function updateDeleteButtonVisibility() {
   if (!deleteCheckedButton) return;
   deleteCheckedButton.classList.toggle('hidden', !settings.showDeleteButton);
+  updateDeleteActionAvailability();
 }
 
 function updateEditButtonVisibility() {
@@ -889,6 +901,29 @@ function updateAddButtonVisibility() {
   }
 }
 
+function canPerformDestructiveAction() {
+  if (!appReady || !doc) return false;
+  if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+  if (pendingSync) return false;
+  if (currentStatusVariant !== 'online') return false;
+  if (Date.now() - lastHeartbeatAt >= heartbeatStaleMs) return false;
+  return true;
+}
+
+function updateDeleteActionAvailability() {
+  const enabled = canPerformDestructiveAction();
+  const allowConfirm = enabled && pendingDeleteCheckedIds.size > 0;
+  if (deleteCheckedButton) {
+    deleteCheckedButton.disabled = !enabled;
+  }
+  if (removeCheckedButton) {
+    removeCheckedButton.disabled = !enabled;
+  }
+  if (confirmRemoveButton) {
+    confirmRemoveButton.disabled = !allowConfirm;
+  }
+}
+
 function normalizeAddButtonMode(value) {
   return ['no', 'titlebar', 'left', 'right'].includes(value) ? value : 'no';
 }
@@ -904,7 +939,9 @@ function openConfirmDialog() {
 
 function closeConfirmDialog() {
   if (!confirmDialog?.open) return;
+  pendingDeleteCheckedIds = new Set();
   confirmDialog.close();
+  updateDeleteActionAvailability();
 }
 
 async function fetchThemeCatalog() {
@@ -968,6 +1005,7 @@ function setStatus(variant = 'idle') {
     statusSymbol.textContent = icons[target];
   }
   updateStatusTooltip();
+  updateDeleteActionAvailability();
 }
 
 function connectSocket() {
