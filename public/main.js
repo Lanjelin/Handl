@@ -67,7 +67,6 @@ const DEFAULT_SETTINGS = {
 const LOCAL_SETTINGS_PREFIX = 'handl-settings';
 const LOCAL_UI_PREFIX = 'handl-ui-cache';
 const LOCAL_TOKEN_KEY = 'handl-session-token';
-const LOCAL_DOC_PREFIX = 'handl-doc-v3';
 
 const FALLBACK_THEME_META_COLOR = '#0f172a';
 const FALLBACK_THEME = {
@@ -150,7 +149,6 @@ let ws;
 let reconnectTimeout;
 let syncTimeout;
 let syncSettleTimeout;
-let persistTimeout;
 let pendingSync = false;
 let viewMode = true;
 let sessionToken = null;
@@ -349,7 +347,7 @@ function normalizeItems(source) {
     .filter(Boolean);
 }
 
-function setDoc(nextDoc, { sync = false, persist = true, renderNow = true } = {}) {
+function setDoc(nextDoc, { sync = false, renderNow = true } = {}) {
   doc = nextDoc || createInitialDoc();
   const snapshot = snapshotFromDoc(doc);
   items = snapshot.items;
@@ -381,9 +379,6 @@ function setDoc(nextDoc, { sync = false, persist = true, renderNow = true } = {}
     if (languageSelect) {
       languageSelect.value = translations[settings.language] ? settings.language : 'en';
     }
-  }
-  if (persist) {
-    schedulePersistDocument();
   }
   if (sync) {
     scheduleSync();
@@ -1168,18 +1163,11 @@ async function applySessionResponse(session) {
   updateShareCodeDisplay();
   persistActiveListId();
   persistLocalSettings();
-
-  const cached = loadStoredDocument(activeListId);
-  if (cached) {
-    doc = cached.doc;
-  } else {
-    doc = loadDocFromSession(session);
-  }
+  doc = loadDocFromSession(session);
   syncState = Automerge.initSyncState();
 
-  setDoc(doc, { sync: false, persist: false });
+  setDoc(doc, { sync: false });
   updatePresence(0);
-  schedulePersistDocument();
   connectSocket();
 }
 
@@ -1458,7 +1446,6 @@ function drainSync() {
     ws.send(message);
   }
   syncState = nextSyncState;
-  schedulePersistDocument();
   if (!sentMessage || !pendingSync) {
     scheduleSyncSettledStatus();
   }
@@ -1505,7 +1492,6 @@ function handleMessage(raw) {
     const snapshot = snapshotFromDoc(doc);
     items = snapshot.items;
     render();
-    schedulePersistDocument();
     drainSync();
   } catch (error) {
     console.warn('Invalid sync payload', error);
@@ -1597,41 +1583,6 @@ function clearHeartbeatWatchdog() {
   if (!heartbeatTimeout) return;
   clearTimeout(heartbeatTimeout);
   heartbeatTimeout = null;
-}
-
-function loadStoredDocument(listId) {
-  if (typeof localStorage === 'undefined' || !listId) return null;
-  try {
-    const rawSnapshot = localStorage.getItem(docStorageKey(listId));
-    if (!rawSnapshot) return null;
-    const snapshot = JSON.parse(rawSnapshot);
-    return { doc: docFromSnapshot(snapshot) };
-  } catch (error) {
-    console.warn('Failed to load stored doc', error);
-    return null;
-  }
-}
-
-function schedulePersistDocument() {
-  if (!activeListId || typeof localStorage === 'undefined') return;
-  if (persistTimeout) clearTimeout(persistTimeout);
-  persistTimeout = setTimeout(() => {
-    persistTimeout = null;
-    persistDocument();
-  }, 125);
-}
-
-function persistDocument() {
-  if (!activeListId || typeof localStorage === 'undefined') return;
-  try {
-    localStorage.setItem(docStorageKey(activeListId), JSON.stringify(snapshotFromDoc(doc)));
-  } catch (error) {
-    console.warn('Failed to persist doc', error);
-  }
-}
-
-function docStorageKey(listId) {
-  return `${LOCAL_DOC_PREFIX}:${listId}`;
 }
 
 async function registerServiceWorker() {
